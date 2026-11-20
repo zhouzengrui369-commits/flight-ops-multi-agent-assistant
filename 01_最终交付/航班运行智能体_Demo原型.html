@@ -1,0 +1,1291 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>航班运行保障多智能体协同助手 · Demo 原型（模拟企业微信 · 群聊＋私信决策）</title><style>
+:root{--wine:#7F094A;--wine2:#5E0737;--gold:#A5805B;--pale:#F9F3F5;--line:#E3E5E9;
+--ink:#1F2225;--muted:#8A8F96;--blue:#4A6E8A;--green:#5B7F6B;--purple:#8A5A7A;
+--rail:#2C2D31;--rail2:#3A3C42;--panel:#F5F6F8;--chatbg:#F2F3F5;--self:#D6E8FF;--mic:#0082EF;
+--tell:#4194E4;--red:#E8453C;--amber:#E0A030}
+*{box-sizing:border-box}
+html,body{overflow-x:hidden}
+body{margin:0;background:#EDEEF1;color:var(--ink);font-family:"Microsoft YaHei","微软雅黑",-apple-system,sans-serif;line-height:1.62;font-size:13px}
+.stage{max-width:1560px;margin:0 auto;padding:12px 16px 16px}
+.stagebar{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:9px}
+.stagebar .sl b{font-size:16px;color:var(--wine2)}
+.stagebar .sl span{font-size:12px;color:#6E7378;margin-left:10px}
+.stagebar .sr{display:flex;gap:7px;align-items:center;flex-wrap:wrap}
+.pill{background:#fff;border:1px solid var(--line);border-radius:12px;padding:3px 10px;font-size:11.5px;color:#5A5F66}
+.pill.hot{background:var(--pale);border-color:#E8CFDB;color:var(--wine)}
+.link{border:0;background:none;color:var(--mic);font-size:12px;cursor:pointer;padding:2px 4px;text-decoration:underline}
+.note{display:none;background:#FFF8E8;border:1px solid #E8D3A0;border-left:4px solid var(--gold);border-radius:6px;padding:10px 13px;font-size:12px;color:#6B542F;margin-bottom:10px;line-height:1.7}
+.note.on{display:block}
+.note b{color:var(--wine)}
+
+.app{display:grid;grid-template-columns:58px 252px minmax(0,1fr) 392px;height:calc(100vh - 108px);min-height:620px;background:#fff;border:1px solid #DCDEE3;border-radius:7px;overflow:hidden;box-shadow:0 10px 34px rgba(31,34,37,.13)}
+.app.nd{grid-template-columns:58px 252px minmax(0,1fr)}
+
+.rail{background:var(--rail);display:flex;flex-direction:column;align-items:center;padding:12px 0 10px;gap:3px}
+.rail .me{width:32px;height:32px;border-radius:7px;background:linear-gradient(140deg,#8CC7F5,#4B93D8);color:#fff;font-size:12px;display:flex;align-items:center;justify-content:center;font-weight:700;margin-bottom:10px}
+.rail .ic{width:44px;height:44px;border-radius:7px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;color:#AFB3BA;font-size:9.5px;cursor:default;position:relative}
+.rail .ic .g{font-size:17px;line-height:1}
+.rail .ic.on{background:var(--rail2);color:#fff}
+.rail .ic .bdg{position:absolute;top:4px;right:6px;min-width:15px;height:15px;border-radius:8px;background:var(--red);color:#fff;font-size:9.5px;line-height:15px;text-align:center;padding:0 3px}
+.rail .sp{flex:1}
+.rail .ic.dot::after{content:'';position:absolute;top:8px;right:12px;width:7px;height:7px;border-radius:50%;background:var(--red)}
+
+.chats{background:var(--panel);border-right:1px solid var(--line);display:flex;flex-direction:column;min-width:0;min-height:0}
+.csbar{padding:10px 11px 7px;display:flex;gap:7px;align-items:center}
+.csbar .logo{width:25px;height:25px;border-radius:6px;background:var(--mic);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700}
+.csbar input{flex:1;min-width:0;border:1px solid #E1E3E7;background:#fff;border-radius:5px;padding:4px 8px;font-size:12px;font-family:inherit;color:var(--ink)}
+.clist{flex:1;min-height:0;overflow-y:auto;padding:0 0 10px}
+.csec{font-size:10.5px;color:#A0A5AB;padding:7px 12px 3px;letter-spacing:.5px}
+.citem{display:flex;gap:9px;padding:9px 11px;cursor:pointer;align-items:flex-start;position:relative}
+.citem:hover{background:#EDEFF2}
+.citem.on{background:#DDE7F5}
+.citem .gv{width:35px;height:35px;border-radius:6px;color:#fff;font-size:11.5px;font-weight:700;display:flex;align-items:center;justify-content:center;flex:none;position:relative}
+.citem .gv .dm{position:absolute;right:-3px;bottom:-3px;width:10px;height:10px;border-radius:50%;background:var(--tell);border:2px solid var(--panel)}
+.citem .gt{flex:1;min-width:0}
+.citem .gt .n{font-size:12.6px;font-weight:600;color:#23262A;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.citem .gt .p{font-size:11.2px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
+.citem .tm{font-size:10.4px;color:#A6ABB1;flex:none;margin-top:2px}
+.citem .ub{position:absolute;right:10px;bottom:8px;min-width:16px;height:16px;border-radius:8px;background:var(--red);color:#fff;font-size:10px;line-height:16px;text-align:center;padding:0 4px}
+
+.main{display:flex;flex-direction:column;min-width:0;min-height:0;background:var(--chatbg)}
+.mhead{min-height:52px;background:#FAFBFC;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:6px 15px;gap:10px;flex:none}
+.mhead .mt{font-size:14.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mhead .mt em{font-style:normal;font-size:11.5px;color:var(--muted);font-weight:400;margin-left:6px}
+.mhead .mhl{flex:1;min-width:0}
+.mhead #msub{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mhead .macts{display:flex;gap:6px;align-items:center;flex:none;flex-wrap:wrap;justify-content:flex-end}
+.mhead.dm .dmhide{display:none}
+.iconbtn{border:0;background:none;color:#6C7278;font-size:14px;cursor:pointer;padding:4px 6px;border-radius:5px;line-height:1}
+.iconbtn:hover{background:#EDEFF2}
+.iconbtn.txt{font-size:12px;border:1px solid var(--line);background:#fff;padding:4px 9px}
+.iconbtn.txt.on{background:#EAF3FE;border-color:#C3DCF7;color:#1B6FC9;font-weight:600}
+
+.stream{flex:1;min-height:0;overflow-y:auto;padding:14px 16px 8px}
+.sysline{text-align:center;margin:5px 0 12px}
+.sysline span{display:inline-block;background:rgba(0,0,0,.045);color:#7C8288;font-size:11px;padding:3px 10px;border-radius:10px;max-width:90%;line-height:1.55}
+.msg{display:flex;gap:8px;margin-bottom:12px;align-items:flex-start}
+.msg .ava{width:32px;height:32px;border-radius:5px;flex:none;color:#fff;font-size:11.5px;font-weight:700;display:flex;align-items:center;justify-content:center}
+.msg .body{min-width:0;max-width:76%}
+.msg .meta{font-size:11px;color:#8B9096;margin-bottom:4px;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.msg .meta b{color:#4A4F55;font-weight:600;font-size:11.5px}
+.msg .meta .tag{background:#EAF3FE;color:#2C7BC4;border-radius:3px;padding:0 5px;font-size:10px;line-height:15px}
+.bubble{background:#fff;border-radius:6px;padding:9px 12px;font-size:13px;line-height:1.72;color:#22262A;word-break:break-word;box-shadow:0 1px 2px rgba(0,0,0,.05);white-space:pre-wrap}
+.msg.self{flex-direction:row-reverse}
+.msg.self .body{max-width:70%}
+.msg.self .meta{justify-content:flex-end}
+.msg.self .bubble{background:var(--self)}
+.msg.self .ava{background:#5B8FC7}
+.msg.bot .body{max-width:88%}
+.msg.bot .ava{border-radius:6px}
+/* 群内应用消息卡片 */
+.card{background:#fff;border-radius:6px;box-shadow:0 1px 3px rgba(0,0,0,.07);overflow:hidden;border-top:3px solid var(--wine)}
+.card .chd{padding:8px 12px 7px;background:linear-gradient(180deg,#FCFAFB,#fff);border-bottom:1px solid #F0EFF2;display:flex;justify-content:space-between;gap:8px;align-items:center}
+.card .chd .st{font-size:10.8px;color:#3F7A5A;background:#EAF5EF;border-radius:9px;padding:1px 8px;white-space:nowrap}
+.card .chd .st.warn{color:#8A6416;background:#FDF3E2}
+.card .cin{padding:9px 12px 10px}
+.card .hit{font-size:11px;color:var(--muted);margin-bottom:6px}
+.card ol{margin:0 0 8px;padding-left:18px;font-size:12.5px;line-height:1.68}
+.card ol li{margin-bottom:3px}
+.card .clause{background:#FAFAFB;border:1px solid #F0EFF2;border-radius:5px;padding:6px 9px;margin-top:5px;font-size:11.3px;line-height:1.62;color:#4E5359}
+.card .clause .src{color:var(--wine);font-weight:600;font-size:11.3px}
+.card .clause .ctx{color:#8A8F96;font-size:10.8px;margin-top:2px}
+.card .cft{padding:7px 12px;background:#FCFCFD;border-top:1px solid #F2F1F4;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.card .cft .who{font-size:10.8px;color:#A0A5AB;flex:1;line-height:1.5}
+.card .cft button{border:1px solid #E3E5E9;background:#fff;color:#3A6EA5;font-size:11.5px;padding:3px 10px;border-radius:4px;cursor:pointer;font-family:inherit;white-space:nowrap}
+.card .cft button:hover{background:#F2F7FD;border-color:#C8D9EC}
+.card .cft button.pt{background:var(--mic);border-color:var(--mic);color:#fff}
+.card .cft button.pt:hover{background:#0A6FCC}
+/* 决策回执卡（回推运行群） */
+.receipt{margin:0 0 12px 40px;background:#F4FAF6;border:1px solid #CFE3D5;border-left:3px solid var(--green);border-radius:6px;padding:9px 12px;max-width:78%}
+.receipt .rh{font-size:11.8px;font-weight:600;color:#2F7752;margin-bottom:5px;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.receipt .rh span{font-weight:400;color:#7C8B82;font-size:10.8px}
+.receipt .rb{font-size:12.3px;line-height:1.7;color:#2A3A32;white-space:pre-wrap}
+/* 私信区 */
+.dmbanner{background:#EAF3FE;border-bottom:1px solid #CBDEF5;padding:6px 15px;font-size:11.4px;color:#1B5E9E;display:none;align-items:center;gap:8px;flex-wrap:wrap}
+.dmbanner.on{display:flex}
+.dmbanner b{font-weight:600}
+.decision{margin:0 0 12px 0;background:#FFF7F2;border:1px solid #EBD3BF;border-left:4px solid var(--gold);border-radius:6px;padding:9px 12px;max-width:86%}
+.decision .dh2{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:5px}
+.decision .dg{background:var(--gold);color:#fff;font-size:11px;font-weight:600;border-radius:3px;padding:1px 7px}
+.decision .dw{font-size:11.5px;color:#7A5E42;font-weight:600}
+.decision .dt{font-size:10.8px;color:#A79A8C}
+.decision .dq2{font-size:11.2px;color:#8A8F96;background:#FBF3EC;border-radius:4px;padding:4px 8px;margin-bottom:5px;line-height:1.55}
+.decision .db2{font-size:12.4px;line-height:1.7;color:#3A2E24;font-weight:600}
+.dmcomposer{display:none;border-top:1px solid var(--line)}
+.dq{display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding:7px 12px 0;background:#FBFCFD}
+.dq .dql{font-size:10.8px;color:#8A8F96;margin-right:2px}
+.dq button{border:1px solid #D8E3EF;background:#fff;color:#1B6FC9;font-size:11.2px;padding:3px 9px;border-radius:11px;cursor:pointer;font-family:inherit;white-space:nowrap}
+.dq button:hover{background:#F1F7FD}
+.dq button:last-child{background:var(--gold);border-color:var(--gold);color:#fff;margin-left:auto}
+.dq button:last-child:hover{background:#8E6C4A}
+.dmcomposer .cbox{border-top:0}
+.dmcomposer textarea{width:100%;box-sizing:border-box;border:0;outline:0;resize:none;min-height:64px;padding:10px 12px;font-family:inherit;font-size:12.6px;line-height:1.6;color:var(--ink);background:#fff}
+.ansc{background:#fff;border-radius:6px;box-shadow:0 1px 3px rgba(0,0,0,.06);padding:9px 12px;border-left:3px solid var(--tell)}
+.ansc .ab{font-size:12.4px;line-height:1.72;color:#2B2B2B}
+.ansc .anote{font-size:10.8px;color:#A0A5AB;margin-top:7px;line-height:1.55}
+.dmcard{background:#fff;border-radius:6px;box-shadow:0 1px 3px rgba(0,0,0,.07);overflow:hidden;border-left:3px solid var(--tell);max-width:100%}
+.dmcard .dh{background:linear-gradient(180deg,#F3F9FF,#fff);padding:8px 12px;border-bottom:1px solid #EDF2F8;display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap}
+.dmcard .dh .d1{font-size:12.2px;font-weight:600;color:#1B5E9E}
+.dmcard .dh .d2{font-size:10.8px;color:#8FA4B8}
+.dmcard .db{padding:9px 12px 10px;font-size:12.4px;line-height:1.72}
+.dmcard .ctx{background:#F7F9FB;border:1px dashed #DCE3EA;border-radius:5px;padding:6px 9px;font-size:11.4px;color:#5A6570;margin-bottom:7px;line-height:1.6}
+.dmcard .opts{margin:7px 0 0;padding:0;list-style:none}
+.dmcard .opts li{background:#FBFCFD;border:1px solid #EDF1F5;border-radius:5px;padding:6px 9px;margin-bottom:5px;font-size:12.1px;line-height:1.6}
+.dmcard .opts li b{color:#1B5E9E;margin-right:4px}
+.dmcard .df{padding:8px 12px;background:#FCFDFE;border-top:1px solid #F0F3F6;display:flex;gap:7px;flex-wrap:wrap;align-items:center}
+.dmcard .df .fw{font-size:10.8px;color:#A0A5AB;flex:1;min-width:100px}
+.dmcard .df button{border:1px solid #D8E3EF;background:#fff;color:#1B6FC9;font-size:11.5px;padding:4px 11px;border-radius:4px;cursor:pointer;font-family:inherit;white-space:nowrap}
+.dmcard .df button:hover{background:#F1F7FD}
+.dmcard .df button.p{background:var(--mic);border-color:var(--mic);color:#fff}
+.dmcard .df button.p:hover{background:#0A6FCC}
+.dmcard .df button.done{border-color:#CFE3D5;background:#F2FAF5;color:#2F7752;cursor:default}
+/* ---------- 值班身份 ---------- */
+.rail .me{cursor:pointer;position:relative;box-shadow:0 0 0 2px rgba(255,255,255,.5) inset}
+.rail .me:hover{filter:brightness(1.08)}
+.rail .me::after{content:'';position:absolute;right:-2px;bottom:-2px;width:9px;height:9px;border-radius:50%;background:#3FBF6A;border:2px solid var(--rail)}
+.iconbtn.txt.mebtn{background:#F3F9FF;border-color:#C3DCF7;color:#1B5E9E;font-weight:600}
+.iconbtn.txt.mebtn:hover{background:#E6F1FD}
+.dmbanner .who{background:#fff;border:1px solid #CBDEF5;border-radius:10px;padding:1px 9px;font-weight:600;white-space:nowrap}
+.mytip{font-size:10.8px;color:#9298A0;line-height:1.6;padding:6px 12px 8px 12px;border-top:1px dashed #E3E6EA;margin-top:4px}
+.mytip b{color:var(--wine)}
+/* 身份切换面板 */
+.rmask{position:fixed;inset:0;background:rgba(20,22,26,.55);display:none;align-items:center;justify-content:center;z-index:200;padding:20px}
+.rmask.on{display:flex}
+.rbox{background:#fff;border-radius:12px;box-shadow:0 24px 60px rgba(0,0,0,.3);width:min(1010px,96vw);max-height:88vh;overflow:auto}
+.rbody{padding:18px 20px 20px}
+.rhead{display:flex;gap:14px;justify-content:space-between;align-items:flex-start;margin-bottom:14px}
+.rhead .rt{font-size:16px;font-weight:700;color:var(--wine)}
+.rhead .rsub{font-size:11.6px;color:#82888F;line-height:1.65;margin-top:5px;max-width:640px}
+.rhead .rx{border:1px solid var(--line);background:#fff;color:#5B6169;font-size:12px;padding:5px 14px;border-radius:5px;cursor:pointer;font-family:inherit;flex:none}
+.rhead .rx:hover{background:#F4F6F8}
+.rgrid{display:grid;grid-template-columns:repeat(5,1fr);gap:9px}
+@media(max-width:900px){.rgrid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:560px){.rgrid{grid-template-columns:1fr}}
+.rcard{display:block;border:1px solid var(--line);border-radius:9px;padding:12px 10px 10px;cursor:pointer;background:#fff;transition:.15s;text-align:center}
+.rcard:hover{border-color:#C9B3BF;box-shadow:0 4px 14px rgba(127,9,74,.09);transform:translateY(-1px)}
+.rcard.on{border-color:var(--wine);background:#FBF3F7;box-shadow:0 0 0 1px var(--wine) inset}
+.rcard .rav{width:36px;height:36px;border-radius:9px;color:#fff;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;margin:0 auto 7px}
+.rcard .rtx{min-width:0}
+.rcard .rn{font-size:13px;font-weight:700;color:#23262A;display:flex;align-items:center;justify-content:center;gap:4px;flex-wrap:wrap}
+.rcard .rr{font-size:10px;font-weight:600;color:#fff;background:#A5805B;border-radius:3px;padding:0 4px}
+.rcard .rnow{font-size:9.6px;font-weight:600;color:var(--wine);background:#F3DFE7;border-radius:3px;padding:0 4px}
+.rcard .rp{font-size:11px;color:#5A6068;margin-top:3px;line-height:1.45}
+.rcard .ra{font-size:10px;color:#9AA0A8;margin-top:5px;line-height:1.45}
+.rcard .rb{font-size:10px;color:#A0A6AD;margin-top:5px;line-height:1.45}
+.rcard .rw{color:var(--red);font-weight:600}
+.rcard .rg{color:#2F7752}
+.rfoot{margin-top:14px;background:#FBF7F9;border:1px solid #EFE2E8;border-radius:8px;padding:11px 13px;font-size:11.8px;line-height:1.78;color:#4A5058}
+.rfoot b{color:var(--wine)}
+/* 轻提示 */
+.toast{position:fixed;left:50%;bottom:34px;transform:translate(-50%,14px);background:rgba(28,30,34,.93);color:#fff;font-size:12.4px;line-height:1.6;padding:9px 18px;border-radius:20px;box-shadow:0 8px 26px rgba(0,0,0,.26);opacity:0;pointer-events:none;transition:.24s;z-index:300;max-width:78vw;text-align:center}
+.toast.on{opacity:1;transform:translate(-50%,0)}
+/* 输入区 */
+.composer{flex:none;background:#FAFBFC;border-top:1px solid var(--line);padding:7px 13px 9px}
+.qbar{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:7px;padding-bottom:7px;border-bottom:1px dashed #DEE1E6}
+.qbar .ql{font-size:10.5px;color:#A0A5AB;letter-spacing:.4px;margin-right:2px}
+.qbar button{font-family:inherit;font-size:11.4px;border:1px solid #E1E4E9;background:#fff;color:#4A5057;border-radius:11px;padding:3px 10px;cursor:pointer}
+.qbar button:hover{background:#F1F5FA;border-color:#C9D5E3;color:#2C6FB5}
+.qbar button.hot{background:#FDF2F6;border-color:#EBCFDB;color:var(--wine)}
+.qbar select{font-family:inherit;font-size:11.4px;border:1px solid #E1E4E9;background:#fff;border-radius:11px;padding:3px 7px;color:#4A5057;max-width:240px}
+.cbox{background:#fff;border:1px solid #DFE2E7;border-radius:6px;padding:6px 10px 7px}
+.cbox:focus-within{border-color:#A9BFD6}
+.ctools{display:flex;gap:11px;color:#9AA0A7;font-size:13px;padding-bottom:4px}
+textarea#msg{width:100%;min-height:48px;max-height:120px;border:0;resize:vertical;font-family:inherit;font-size:13px;line-height:1.62;color:var(--ink);padding:2px 0;background:transparent}
+textarea#msg:focus{outline:none}
+.cfoot{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:3px}
+.cfoot .chint{font-size:11px;color:#A8ADB3}
+.cfoot .cbtn{display:flex;gap:8px;align-items:center}
+.cfoot button{border:0;border-radius:4px;font-family:inherit;font-size:12.5px;padding:6px 18px;cursor:pointer;background:var(--mic);color:#fff;white-space:nowrap;flex:none}
+.cfoot button:hover{background:#0A6FCC}
+.cfoot button.g{background:#fff;color:#5B6169;border:1px solid var(--line);padding:6px 12px}
+/* 右侧面板 */
+.drawer{border-left:1px solid var(--line);background:#fff;display:flex;flex-direction:column;min-width:0;min-height:0}
+.drawer.hide{display:none}
+.dhead{padding:10px 13px 0;flex:none}
+.dhead .dt{font-size:13.5px;font-weight:600;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.tabs{display:flex;gap:1px;margin-top:8px;border-bottom:1px solid var(--line);overflow-x:auto}
+.tabs button{flex:1;border:0;background:none;font-family:inherit;font-size:11.6px;color:#7A8087;padding:7px 2px;cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap}
+.tabs button.on{color:var(--wine);border-bottom-color:var(--wine);font-weight:600}
+.dbody{flex:1;min-height:0;overflow-y:auto;padding:11px 13px 16px}
+.tab{display:none}
+.tab.on{display:block}
+.jintro{border:1px dashed #D9DDE3;border-radius:6px;padding:8px 10px;margin-bottom:8px;background:#FCFCFD}
+.jintro .jh{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:600;color:#3C4147}
+.jintro .jm{font-size:11px;color:#8A8F96;margin-top:3px;line-height:1.6}
+.jrow{border:1px solid #EDEFF2;border-radius:6px;padding:8px 10px;margin-bottom:7px}
+.jrow.off{background:#FAFAFB}
+.jrow .jh{display:flex;align-items:center;gap:6px;font-size:12.2px;font-weight:600;flex-wrap:wrap}
+.jrow .dt2{width:7px;height:7px;border-radius:50%;flex:none}
+.jrow .stt{margin-left:auto;font-size:10.4px;border-radius:8px;padding:0 7px;line-height:16px;background:#EAF5EF;color:#2F7752;white-space:nowrap}
+.jrow.off .stt{background:#F0F1F3;color:#9AA0A6}
+.jrow .jm{font-size:11px;color:#8A8F96;margin-top:3px;line-height:1.6}
+.flowmini{display:flex;align-items:center;gap:4px;margin-top:6px;flex-wrap:wrap}
+.flowmini .sp{font-size:10.2px;border-radius:8px;padding:1px 7px;background:#F1F3F6;color:#8A8F96;white-space:nowrap}
+.flowmini .sp.ok{background:#EAF5EF;color:#2F7752}
+.flowmini .sp.wait{background:#FFF4E2;color:#8A6416}
+.flowmini .sp.no{background:#F5F1F7;color:#7A6F82}
+.flowmini .ar{color:#C3C8CE;font-size:10px}
+.summary{display:flex;flex-direction:column;gap:7px;margin:10px 0 4px}
+.summary .box{background:var(--pale);border-radius:5px;padding:8px 10px;font-size:11.8px;line-height:1.6}
+.summary .box b{color:var(--wine);font-size:14px;margin-right:2px}
+.human{background:#EFF4F8;border-left:3px solid var(--blue);border-radius:4px;padding:8px 10px;font-size:11.6px;line-height:1.65;margin-top:8px;color:#3E4A54}
+.human b{color:#2E5C7E}
+.metrics{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:9px}
+.mcard{border:1px solid #EDEFF2;border-radius:6px;padding:8px 9px;font-size:11px;background:#fff}
+.mcard .mv{font-size:16px;font-weight:700;color:var(--wine);display:block;line-height:1.3}
+.mcard .mn{font-size:11.1px;font-weight:600;margin:1px 0 2px}
+.mcard .mg{font-size:10.3px;color:var(--muted);line-height:1.5}
+.mcard .pass{color:#2F7752;font-weight:700}
+.mcard .fail{color:#C0392B;font-weight:700}
+.mcard .ref{color:var(--gold);font-weight:700}
+.mnote{font-size:10.7px;color:var(--muted);margin-top:9px;line-height:1.62}
+.mnote b{color:#5A6068}
+.sbtn{font-family:inherit;font-size:11.7px;border:0;border-radius:4px;padding:6px 12px;cursor:pointer;background:var(--wine);color:#fff;margin:0 5px 5px 0}
+.sbtn.g{background:#fff;border:1px solid var(--line);color:#5B6169}
+.sbtn.gold{background:var(--gold)}
+.sbtn:disabled{opacity:.42;cursor:not-allowed}
+.drawmsg{background:#FAFBFC;border:1px solid #EDEFF2;border-radius:5px;padding:8px 10px;font-size:11.3px;line-height:1.62;margin:7px 0;color:#4A5057;white-space:pre-wrap}
+.answer{background:#EFF7F2;border:1px solid #CFE3D5;border-radius:5px;padding:9px 10px;font-size:11.2px;line-height:1.68;margin-top:7px;display:none}
+.answer b{color:#2F7752}
+pre.record,.rec{white-space:pre-wrap;background:#FAFBFC;border:1px solid #EDEFF2;border-radius:5px;padding:8px 10px;font-size:10.5px;font-family:inherit;line-height:1.6;margin:7px 0 0;color:#4A5057;max-height:260px;overflow:auto}
+.log{font-size:11px;line-height:1.65}
+.log div{border-bottom:1px dashed #EDEFF2;padding:3px 0;display:flex;gap:6px}
+.log .t{color:var(--gold);flex:none;font-variant-numeric:tabular-nums}
+.dsec{font-size:11.4px;color:var(--muted);margin:12px 0 5px;font-weight:600}
+
+/* 监控 / 看板 全屏视图 */
+.view{display:none;position:fixed;inset:0;z-index:80;background:#EFEFF3;overflow-y:auto}
+.view.on{display:block}
+.vhead{background:linear-gradient(115deg,var(--wine2),var(--wine) 55%,#9B3D6B);color:#fff;padding:12px 22px;display:flex;justify-content:space-between;align-items:center;gap:12px;position:sticky;top:0;z-index:5;flex-wrap:wrap}
+.vhead h2{margin:0;font-size:17px}
+.vhead .vs{font-size:11.8px;color:#F0DEE7;margin-top:2px}
+.vhead .vr{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.vhead button{border:1px solid rgba(255,255,255,.4);background:rgba(255,255,255,.12);color:#fff;font-family:inherit;font-size:12px;padding:5px 12px;border-radius:4px;cursor:pointer}
+.vhead button:hover{background:rgba(255,255,255,.22)}
+.vbody{max-width:1360px;margin:0 auto;padding:14px 18px 28px}
+.vgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:11px}
+@media(max-width:1000px){.vgrid{grid-template-columns:repeat(2,1fr)}}
+.kpi{background:#fff;border:1px solid var(--line);border-radius:8px;padding:11px 13px}
+.kpi .kn{font-size:11.5px;color:#7A8087}
+.kpi .kv{font-size:24px;font-weight:700;color:var(--wine);line-height:1.25;font-variant-numeric:tabular-nums}
+.kpi .kv small{font-size:11.5px;font-weight:400;color:var(--muted);margin-left:3px}
+.kpi .kd{font-size:10.8px;color:var(--muted);margin-top:2px}
+.kpi.ok .kv{color:#2F7752}
+.kpi.warn .kv{color:#B5791E}
+.panel2{background:#fff;border:1px solid var(--line);border-radius:8px;padding:12px 14px;margin-top:11px}
+.panel2 h3{margin:0 0 9px;font-size:13.5px;color:var(--wine2);display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.panel2 h3 span{font-size:11px;color:var(--muted);font-weight:400}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:11px}
+@media(max-width:1000px){.two{grid-template-columns:1fr}}
+table.dt{width:100%;border-collapse:collapse;font-size:11.6px}
+table.dt th{background:var(--pale);color:var(--wine);font-weight:600;text-align:left;padding:6px 8px;border-bottom:1px solid #EBDCE3;white-space:nowrap}
+table.dt td{padding:6px 8px;border-bottom:1px solid #F2F3F5;vertical-align:top;color:#3B4046}
+table.dt tr:hover td{background:#FBFCFD}
+.chip{display:inline-block;font-size:10.4px;border-radius:8px;padding:0 7px;line-height:16px;white-space:nowrap}
+.chip.g{background:#EAF5EF;color:#2F7752}
+.chip.a{background:#FFF4E2;color:#8A6416}
+.chip.r{background:#FBEAEA;color:#B03A3A}
+.chip.b{background:#EAF3FE;color:#1B6EC4}
+.chip.m{background:#F2F0F4;color:#6F6478}
+.shift{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+@media(max-width:760px){.shift{grid-template-columns:1fr}}
+.shcard{border:1px solid #EDEFF2;border-radius:7px;padding:10px 12px;background:#FCFCFD}
+.shcard .st{font-size:12.4px;font-weight:600;color:#2B3036;display:flex;justify-content:space-between;gap:6px;align-items:center}
+.shcard .sm{font-size:11.2px;color:#7A8087;margin-top:3px;line-height:1.6}
+.feed{max-height:290px;overflow-y:auto}
+.feed .fi{display:flex;gap:8px;padding:6px 0;border-bottom:1px dashed #EDEFF2;font-size:11.5px;line-height:1.6;color:#3B4046}
+.feed .fi .ft{color:var(--gold);flex:none;font-variant-numeric:tabular-nums}
+.feed .fi .fa{flex:none;font-weight:600}
+.legend{display:flex;gap:12px;flex-wrap:wrap;font-size:10.8px;color:#7A8087;margin-top:6px}
+.legend i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:4px}
+.bars{margin-top:4px}
+.bar{display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:11.4px}
+.bar .bn{width:96px;flex:none;color:#5A6068}
+.bar .bt{flex:1;height:13px;background:#F2F3F5;border-radius:7px;overflow:hidden}
+.bar .bt i{display:block;height:100%;border-radius:7px}
+.bar .bv{width:52px;text-align:right;flex:none;font-variant-numeric:tabular-nums;color:#3B4046;font-weight:600}
+.stagefoot{font-size:11px;color:#8A8F96;margin-top:9px;text-align:center;line-height:1.7}
+.mobbar{display:none}
+@media(max-width:1180px){.app{grid-template-columns:58px 226px minmax(0,1fr);height:calc(100vh - 104px)}.app.nd{grid-template-columns:58px 226px minmax(0,1fr)}.drawer{display:none;position:fixed;right:0;top:0;bottom:0;width:92vw;max-width:400px;z-index:60;box-shadow:-8px 0 28px rgba(0,0,0,.22)}.drawer.show{display:flex}}
+@media(max-width:860px){
+ .stage{padding:9px 9px 12px}
+ .app{grid-template-columns:minmax(0,1fr);height:calc(100vh - 92px)}
+ .rail{display:none}
+ .chats{position:fixed;left:0;top:0;bottom:0;width:78vw;max-width:290px;z-index:61;box-shadow:8px 0 26px rgba(0,0,0,.2);display:none}
+ .chats.show{display:flex}
+ .mobbar{display:inline-block}
+ .stagebar{margin-bottom:6px}
+ .stagebar .sl b{font-size:14px}
+ .stagebar .sl span{display:none}
+ .stagebar .sr .pill{display:none}
+ .mhead{min-height:auto;padding:6px 9px}
+ .mhead .mt{font-size:13.4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:38vw}
+ #msub{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:38vw;font-size:10.5px}
+ .macts{gap:3px}
+ .macts .iconbtn.txt{padding:3px 6px;font-size:11px}
+ .msg .body,.msg.bot .body,.msg.self .body{max-width:84%}
+ .receipt{margin-left:0;max-width:100%}
+ .stream{padding:11px 9px 6px}
+ .composer{padding:6px 8px 8px}
+ .qbar{gap:5px;padding-bottom:7px}
+ .qbar .ql{display:none}
+ .qbar button,.qbar select{flex:none;white-space:nowrap;font-size:11px;padding:2px 8px}
+ textarea#msg{min-height:62px}
+ .cfoot .chint{display:none}
+ .cfoot{justify-content:flex-end}
+ .cfoot button{white-space:nowrap;padding:7px 15px}
+ .vbody{padding:10px}
+ .vgrid{grid-template-columns:1fr 1fr}
+}
+
+/* 中等宽度（笔记本 1280 左右）：压缩顶部按钮与输入区，避免按钮竖排 */
+@media(max-width:1400px) and (min-width:861px){
+ .macts .iconbtn.txt{padding:3px 7px;font-size:11.3px}
+ .mhead .mt{font-size:13.6px}
+ .cfoot .chint{display:none}
+ .cfoot{justify-content:flex-end}
+ .cfoot .cbtn{flex:none}
+ .cfoot button{white-space:nowrap}
+ .qbar button,.qbar select{font-size:11px;padding:2px 8px}
+}
+@media print{.rail,.chats,.composer,.mobbar{display:none}.app{height:auto;border:0;box-shadow:none}.drawer{border:0}}
+</style></head><body><div class="stage"><div class="stagebar"><div class="sl"><b>航班运行保障多智能体协同助手</b><span>规则版 Demo · 群聊协同 ＋ 私信决策 ＋ 回推运行群 ＋ 24 小时监控 ＋ 复盘与正常性看板</span></div><div class="sr"><span class="pill hot">5 个智能体</span><span class="pill">群聊→私信→回推</span><span class="pill">24 小时监控</span><span class="pill">一键复盘</span><span class="pill">正常性看板</span><button class="link" onclick="toggleNote()">口径说明</button></div></div><div class="note" id="note"><b>口径说明：</b>本原型用职责关键词匹配模拟各智能体「这条消息与我是否有关」的判断，用于把群聊路由、群内建议、私信决策、回推运行群、监控提醒、复盘与正常性看板这条完整链路先跑通。它<b>不连接生产系统、不向真实企业微信群发送任何消息、不写入任何业务数据</b>；当天值班负责人用固定的角色映射（Demo 期不识别真实排班，企业微信侧需额外开发识别当天值班人，HOC 已能识别）；页面中的条款为示例条款，正常性数据为演示样例。接入神州问学平台与模型之后，必须用同一套案例集重新测量六项指标，规则版结果不能当作模型准确率。</div><div class="app" id="app"><div class="rail"><div class="me" id="meav" onclick="openRole()" title="当前值班身份 · 点击切换">我</div><div class="ic on"><span class="g">💬</span>消息<span class="bdg">5</span></div><div class="ic" onclick="monitor()" style="cursor:pointer"><span class="g">📡</span>监控</div><div class="ic" onclick="ontime()" style="cursor:pointer"><span class="g">📊</span>看板</div><div class="ic" onclick="review()" style="cursor:pointer"><span class="g">🧾</span>复盘</div><div class="sp"></div><div class="ic"><span class="g">⚙</span>设置</div></div><div class="chats" id="chats"><div class="csbar"><span class="logo">企</span><input placeholder="搜索" readonly></div><div class="clist" id="clist"></div></div><div class="main"><div class="mhead" id="mhead"><div class="mhl"><div class="mt" id="mt">HO1234 航班保障群</div><div style="font-size:11px;color:#8A8F96" id="msub">上海虹桥—北京大兴 · 群成员 28 人</div></div><div class="macts"><button class="iconbtn txt mobbar" onclick="toggleChats()">会话</button><button class="iconbtn txt mebtn" id="mebtn" onclick="openRole()" title="当前值班身份 · 点击切换">陈敏 · 运控</button><button class="iconbtn txt dmhide" onclick="monitor()">监控台</button><button class="iconbtn txt dmhide" onclick="ontime()">正常性看板</button><button class="iconbtn txt dmhide" onclick="review()">一键复盘</button><button class="iconbtn txt" onclick="toggleDrawer()">运行面板</button><button class="iconbtn txt" onclick="resetAll()">重置</button></div></div><div class="dmbanner" id="dmbanner"></div><div class="stream" id="stream"></div><div class="composer" id="composer"><div class="qbar"><span class="ql">演示控制台</span><button class="hot" onclick="injectScene(0)">特殊旅客</button><button class="hot" onclick="injectScene(1)">飞机故障</button><button class="hot" onclick="injectScene(2)">重保</button><button class="hot" onclick="injectScene(3)">突发事件</button><select id="negsel"><option value="">选择负样本案例</option></select><button onclick="injectNeg()">注入负样本</button><button onclick="clearAll()">清空本群</button></div><div class="gcomposer" id="gcomposer"><div class="cbox"><div class="ctools"><span>😊</span><span>✂</span><span>📎</span><span>🖼</span><span>📁</span><span>🎤</span><span>📋</span></div><textarea id="msg" placeholder="在此输入一条航班群消息，按 Enter 发送给 5 个智能体判断"></textarea><div class="cfoot"><span class="chint">Enter 发送 · Shift+Enter 换行 · 以当前身份发言，判断相关的席位会在群内给建议，并单独私信当天负责人</span><span class="cbtn"><button class="g" onclick="clearAll()">清空对话</button><button onclick="send()">发送</button></span></div></div></div></div><div class="dmcomposer" id="dmcomposer"><div class="dq"><span class="dql">继续追问</span><button onclick="askQuick('esc')">依据出自哪一条</button><button onclick="askQuick('alt')">还有别的处置方案吗</button><button onclick="askQuick('risk')">不这样处置有什么风险</button><button onclick="pubDecision()">正式发布决策</button></div><div class="cbox"><textarea id="dmmsg" placeholder="继续追问这个智能体，例如：能不能先登机后补手续？"></textarea><div class="cfoot"><span class="chint">Enter 追问 · 智能体只回答本席位知识库里的内容，并给出依据条款</span><span class="cbtn"><button class="g" onclick="askQuick('close')">结束本次确认</button><button onclick="ask()">追问</button></span></div></div></div></div><div class="drawer" id="drawer"><div class="dhead"><div class="dt">智能体运行面板<span><button class="iconbtn" onclick="toggleDrawer()">收起</button></span></div><div class="tabs"><button class="on" onclick="tab('judge',this)">判断结果</button><button onclick="tab('metric',this)">六项指标</button><button onclick="tab('live',this)">现场抽选</button><button onclick="tab('log',this)">事件记录</button></div></div><div class="dbody"><div class="tab on" id="t-judge"><div class="jintro"><div class="jh">5 个智能体 · 同一条消息广播<span class="stt" style="background:#EEF4FB;color:#2C6FB5">独立判断</span></div><div class="jm">每个相关席位走同一条链路：群内给建议 → 私信当天负责人确认 → 回推运行群。不相关的席位既不发言也不发私信。</div></div><div id="agents"></div><div class="summary" id="summary"></div><div class="human" id="human">等待消息。智能体只给出建议与依据条款，授权、决策、责任仍由值班人员承担。</div></div><div class="tab" id="t-metric"><div style="font-size:11.5px;color:#6C7278;line-height:1.7">对 12 条脚本案例（四大场景各 2 条正样本、1 条负样本）逐条回放，自动计算六项指标。</div><div style="margin-top:8px"><button class="sbtn gold" onclick="replay()">回放全部案例</button></div><div class="metrics" id="metrics"></div><div class="mnote" id="metricnote">尚未回放。点击上方按钮开始。</div></div><div class="tab" id="t-live"><div style="font-size:11.5px;color:#6C7278;line-height:1.7">由评委从四大场景中抽选一个，现场注入消息，对照标准答案核验判断结果、群内建议、私信决策链路与依据条款。</div><div style="margin-top:8px"><button class="sbtn gold" onclick="draw()">开始现场抽选</button><button id="drawrun" class="sbtn g" onclick="drawRun()" disabled>现场注入并运行</button><button id="reveal" class="sbtn g" onclick="reveal()" disabled>揭晓标准答案</button><button id="copyrec" class="sbtn g" onclick="copyRecord()" disabled>复制记录</button></div><div id="drawname" style="font-size:12px;font-weight:700;color:#7F094A;margin-top:8px">尚未抽选</div><div class="drawmsg" id="drawmsg">点击「开始现场抽选」后，这里显示抽中的场景消息。</div><div class="answer" id="answer"></div><pre class="record" id="record"></pre><div class="dsec">四个现场抽选用例也可单独注入（供彩排逐条演练）</div><div><button class="sbtn g" onclick="inject('S1-L1')">特殊旅客 · S1-L1</button><button class="sbtn g" onclick="inject('S2-L1')">飞机故障 · S2-L1</button><button class="sbtn g" onclick="inject('S3-L1')">重保 · S3-L1</button><button class="sbtn g" onclick="inject('S4-L1')">突发事件 · S4-L1</button></div></div><div class="tab" id="t-log"><div style="font-size:11.5px;color:#6C7278;line-height:1.7">消息、判断、群内建议、私信、决策、回推全部按时间留存，对应「不正常航班全场景可无死角复盘、持续沉淀数据资产」。</div><div class="log" id="logbox" style="margin-top:8px"></div></div></div></div></div><div class="stagefoot">规则版 Demo 原型 · 12 人 FDE 小组 · 2026 年 11 月 19 日方案汇报　|　配套：《四大场景脚本案例集》《现场实测执行卡》《项目说明与实施计划》　|　不连接生产系统，示例条款与正常性数据仅供演示</div></div><div class="view" id="v-mon"><div class="vhead"><div><h2>24 小时监控台</h2><div class="vs">智能体 24 小时待命：消息进入即判断、相关席位私信提醒、决策回推运行群</div></div><div class="vr"><span style="font-size:12px">已运行 <b id="monup">0 分 0 秒</b></span><button onclick="monitor()">刷新</button><button onclick="closeView()">返回会话</button></div></div><div class="vbody"><div id="monbody"></div></div></div><div class="view" id="v-ot"><div class="vhead"><div><h2>正常性分析与可视化看板</h2><div class="vs">在实时协同之外，把信息流、处置状态与正常性放在同一张看板上</div></div><div class="vr"><button onclick="ontime()">刷新</button><button onclick="closeView()">返回会话</button></div></div><div class="vbody"><div id="otbody"></div></div></div><div class="view" id="v-rv"><div class="vhead"><div><h2>按群聊上下文一键复盘</h2><div class="vs">把当前保障群的聊天记录整理成事件概览、决策链路、依据条款与可沉淀资产</div></div><div class="vr"><button onclick="review()">刷新</button><button onclick="closeView()">返回会话</button></div></div><div class="vbody"><div id="rvbody"></div></div></div><div class="rmask" id="rmask"><div class="rbox"><div class="rbody" id="rbody"></div></div></div><script>
+var AGENTS=[{"id": "chief", "name": "总值班智能体（1 号）", "short": "总值班", "color": "#7F094A", "keys": ["升级", "上报", "跨席位", "冲突", "裁决", "授权", "应急", "重大", "总值班", "统一口径", "启动应急", "拍板", "统一上报", "统一协调", "多席位"], "desc": "当天最终决策者；跨席位冲突裁决、事件升级、是否启动应急处置、统一上报口径；不代替四个经理智能体做专业判断。", "kb": [{"file": "总值班职责与授权规定", "chapter": "第 3 章", "clause": "第 3.2 条", "text": "跨席位事项由总值班统一裁决，涉及多个席位的建议须汇总冲突点后再提交值班人员。", "advice": "汇总跨席位冲突点，给出裁决意见与升级结论，交值班人员拍板后回群", "tags": ["跨席位", "冲突", "裁决", "统一口径", "协调", "拍板"]}, {"file": "应急预案", "chapter": "第 2 章", "clause": "第 2.1 条", "text": "重大或突发事件由总值班决定是否启动应急处置，并统一上报口径与各席位责任。", "advice": "判断是否启动应急处置，统一上报口径并明确各席位责任", "tags": ["应急", "重大", "上报", "突发", "大面积", "备降"]}]}, {"id": "ops", "name": "运控经理智能体", "short": "运控", "color": "#A5805B", "keys": ["航班动态", "调整", "签派放行", "改航", "备降", "性能限制", "时刻", "流量", "运行通告", "调机", "延误", "大面积", "运控", "航班调配", "航行情报"], "desc": "统筹调配、放行、情报、性能等运控条线；气象岗位提供的事前资料不纳入运行决策判断范围。", "kb": [{"file": "运控手册", "chapter": "第 5 章", "clause": "第 5.3 条", "text": "航班动态调整须核对时刻、放行条件与运行通告。", "advice": "核对航班时刻与放行条件，给出航班动态调整、改航或备降建议", "tags": ["调整", "改航", "备降", "时刻", "延误", "大面积", "取消", "航班动态"]}, {"file": "签派放行规定", "chapter": "第 4 章", "clause": "第 4.2 条", "text": "备降与改航须重新评估签派放行与性能限制。", "advice": "重新评估签派放行与性能限制，确认是否需要调机", "tags": ["放行", "备降", "改航", "调机", "性能"]}, {"file": "运行通告管理办法", "chapter": "第 2 章", "clause": "第 2.4 条", "text": "重要保障航班的运行通告与时刻须单独核对。", "advice": "核对重保航班时刻与运行通告，同步服保保障资源需求", "tags": ["重保", "重要保障", "要客", "运行通告"]}]}, {"id": "flight", "name": "飞行经理智能体", "short": "飞行", "color": "#4A6E8A", "keys": ["机组资质", "机组调配", "机组调整", "机组值勤", "机组可用性", "值勤期", "排班", "飞行技术", "机长", "飞行员"], "desc": "机组资源与飞行技术相关岗位；不回答航行情报与签派放行问题。", "kb": [{"file": "机组管理规定", "chapter": "第 6 章", "clause": "第 6.1 条", "text": "机组值勤期不得超过规定上限，备降或延误之后须重新核算。", "advice": "核算机组值勤期是否超限，给出机组调配可行性意见", "tags": ["值勤期", "机组", "备降", "延误", "排班"]}, {"file": "飞行技术标准", "chapter": "第 3 章", "clause": "第 3.4 条", "text": "执行重要保障与特殊航线任务须核对机组资质。", "advice": "核对机组资质与搭配限制，确认是否满足任务要求", "tags": ["资质", "重保", "机组"]}]}, {"id": "maint", "name": "维修经理智能体", "short": "维修", "color": "#5B7F6B", "keys": ["机务", "故障", "保留故障", "航材", "放行标准", "维修", "排故", "引气", "APU", "MEL", "定检", "机务放行"], "desc": "机务维修、航材、生产控制等共用一个知识库的岗位；不回答旅客服务与签派放行问题。", "kb": [{"file": "维修手册", "chapter": "第 7 章", "clause": "第 7.2 条", "text": "保留故障须按最低设备清单评估对放行的影响。", "advice": "评估保留故障对机务放行的影响，给出排故或保留故障建议", "tags": ["故障", "保留故障", "MEL", "排故", "机务", "引气"]}, {"file": "放行标准", "chapter": "第 5 章", "clause": "第 5.1 条", "text": "备降机场须确认机务保障能力与航材可用性。", "advice": "确认备降机场机务保障能力与航材可用性，明确机务放行状态", "tags": ["备降", "放行", "航材", "机务"]}, {"file": "航材保障程序", "chapter": "第 3 章", "clause": "第 3.1 条", "text": "重要保障航班的机务放行状态须提前确认。", "advice": "提前确认重保航班机务放行状态与保留故障项目", "tags": ["重保", "放行", "机务"]}]}, {"id": "service", "name": "服保经理智能体", "short": "服保", "color": "#8A5A7A", "keys": ["旅客", "特殊旅客", "轮椅", "无人陪伴", "要客", "VIP", "重保", "重要保障", "地面保障", "餐宿", "接驳", "登机协助", "安置", "服务台", "福保", "服保", "保障要点"], "desc": "旅客服务、地面保障、福保等旅客相关岗位；不回答机务放行问题。", "kb": [{"file": "旅客服务标准作业程序", "chapter": "第 4 章", "clause": "第 4.3 条", "text": "轮椅旅客与无人陪伴儿童须安排登机协助与到达交接。", "advice": "落实轮椅旅客登机协助、无障碍车辆与家属到达交接", "tags": ["轮椅", "无人陪伴", "特殊旅客", "登机", "交接"]}, {"file": "要客与重要保障标准", "chapter": "第 2 章", "clause": "第 2.2 条", "text": "重要保障航班须落实要客保障标准与地面接驳。", "advice": "按要客保障标准落实地面接驳、专人引导与保障要点核对", "tags": ["要客", "重保", "重要保障", "接驳", "保障要点"]}, {"file": "不正常航班旅客服务标准", "chapter": "第 6 章", "clause": "第 6.1 条", "text": "备降或大面积延误时须安排旅客安置与餐宿。", "advice": "安排备降旅客安置、餐宿与交通，明确旅客通知口径", "tags": ["备降", "延误", "安置", "餐宿", "取消", "旅客"]}]}], CASES=[{"id": "S1-P1", "scene": "特殊旅客", "type": "正样本", "msg": "HO1234 航班有一名轮椅旅客和两名无人陪伴儿童，请地面保障协助登机并安排到达交接；如保障资源与航班时刻冲突，请运控与总值班统一协调。", "expect": ["service", "ops", "chief"], "not_expect": ["maint", "flight"], "expected_advice": ["登机协助", "到达交接", "航班时刻", "冲突"], "standard": "服保经理智能体为主，输出轮椅旅客登机协助、无障碍车辆与家属到达交接，依据《旅客服务标准作业程序》第 4 章第 4.3 条；运控经理智能体配合核对航班时刻与保障资源，依据《运控手册》第 5 章第 5.3 条；总值班智能体汇总跨席位冲突并给出协调意见，依据《总值班职责与授权规定》第 3 章第 3.2 条。维修与飞行不触发。"}, {"id": "S1-P2", "scene": "特殊旅客", "type": "正样本", "msg": "特殊旅客提示：HO1256 需轮椅旅客登机协助，落地后安排无障碍车辆与家属交接，请服保按要客保障标准落实保障要点。", "expect": ["service"], "not_expect": ["maint", "flight", "ops", "chief"], "expected_advice": ["登机协助", "到达交接"], "standard": "仅服保经理智能体触发，输出登机协助与到达交接，依据《旅客服务标准作业程序》第 4 章第 4.3 条；其余四个席位不触发。"}, {"id": "S1-N1", "scene": "特殊旅客", "type": "负样本", "msg": "HO1234 地面已完成轮椅旅客登机协助，本次仅为信息同步，不涉及机务放行、不涉及机组调整、也不需要航班动态调整。", "expect": ["service"], "not_expect": ["maint", "flight", "ops", "chief"], "expected_advice": ["登机协助"], "standard": "服保可收到信息同步；维修、飞行、运控因消息中明确否定而不触发，总值班也不触发。用于验证不误推。"}, {"id": "S1-L1", "scene": "特殊旅客", "type": "现场抽选", "msg": "HO1234 航班（上海虹桥至北京大兴）有一名轮椅旅客与两名无人陪伴儿童，落地需无障碍车辆及家属交接；同时该航班时刻临近，请运控核对保障资源，并请总值班统一协调。", "expect": ["service", "ops", "chief"], "not_expect": ["maint", "flight"], "expected_advice": ["登机协助", "到达交接", "航班时刻", "冲突"], "standard": "期望触发：服保、运控、总值班。服保按《旅客服务标准作业程序》第 4 章第 4.3 条给出登机协助与到达交接；运控按《运控手册》第 5 章第 5.3 条核对航班时刻与保障资源；总值班按《总值班职责与授权规定》第 3 章第 3.2 条汇总冲突并给出协调意见。期望不触发：维修、飞行。"}, {"id": "S2-P1", "scene": "飞机故障", "type": "正样本", "msg": "HO1188 右发引气故障，机务正在排故，需评估保留故障影响并判断是否调机或调整航班；涉及机组值勤期，请总值班裁决。", "expect": ["maint", "ops", "flight", "chief"], "not_expect": ["service"], "expected_advice": ["保留故障", "机务放行", "航班动态", "值勤期", "冲突"], "standard": "维修经理智能体为主，按《维修手册》第 7 章第 7.2 条评估保留故障对机务放行的影响；运控经理智能体按《运控手册》第 5 章第 5.3 条判断是否调机或航班动态调整；飞行经理智能体按《机组管理规定》第 6 章第 6.1 条核算机组值勤期；总值班智能体汇总跨席位冲突并裁决。服保不触发。"}, {"id": "S2-P2", "scene": "飞机故障", "type": "正样本", "msg": "机组报文（ACARS）：HO1188 ENG BLEED FAULT，MEL 保留故障项目待确认，请维修经理给出机务放行意见。", "expect": ["maint"], "not_expect": ["service", "flight", "ops", "chief"], "expected_advice": ["保留故障", "机务放行"], "standard": "仅维修经理智能体触发，按《维修手册》第 7 章第 7.2 条评估保留故障并给出机务放行意见。报文中的英文简写通过词典读取；「机组报文」不应误触发飞行经理智能体。"}, {"id": "S2-N1", "scene": "飞机故障", "type": "负样本", "msg": "HO1188 右发引气故障已排除，机务放行恢复正常，本次不涉及旅客安置、不涉及机组调整、也不需要航班动态调整。", "expect": ["maint"], "not_expect": ["service", "flight", "ops", "chief"], "expected_advice": ["机务放行"], "standard": "维修可保留故障处置记录；服保、飞行、运控因消息中明确否定而不触发，总值班也不触发。用于验证不误推。"}, {"id": "S2-L1", "scene": "飞机故障", "type": "现场抽选", "msg": "HO1188 短停发现右发引气故障，机务评估需按 MEL 保留故障放行，运控需判断是否调机或改航，飞行经理需确认机组值勤期是否超限；请总值班汇总冲突并给出裁决要点。", "expect": ["maint", "ops", "flight", "chief"], "not_expect": ["service"], "expected_advice": ["保留故障", "机务放行", "航班动态", "值勤期", "冲突"], "standard": "期望触发：维修、运控、飞行、总值班。维修按《维修手册》第 7 章第 7.2 条给出保留故障与机务放行意见；运控按《运控手册》第 5 章第 5.3 条、《签派放行规定》第 4 章第 4.2 条给出调机或改航建议；飞行按《机组管理规定》第 6 章第 6.1 条核算值勤期；总值班按《总值班职责与授权规定》第 3 章第 3.2 条汇总冲突并裁决。期望不触发：服保。"}, {"id": "S3-P1", "scene": "重保", "type": "正样本", "msg": "重要保障航班（重保）HO1901 要客一行 6 人，需服保落实要客保障与地面接驳，运控核对时刻与签派放行，飞行经理确认机组资质，维修经理确认机务放行状态；请总值班统一口径。", "expect": ["service", "ops", "flight", "maint", "chief"], "not_expect": [], "expected_advice": ["地面接驳", "航班时刻", "机组资质", "机务放行", "冲突"], "standard": "五个智能体全部触发且各按本岗位条款输出，不能漏项。服保按《要客与重要保障标准》第 2 章第 2.2 条落实地面接驳；运控按《运行通告管理办法》第 2 章第 2.4 条核对时刻；飞行按《飞行技术标准》第 3 章第 3.4 条核对机组资质；维修按《航材保障程序》第 3 章第 3.1 条确认机务放行状态；总值班按《总值班职责与授权规定》第 3 章第 3.2 条统一口径并汇总冲突。"}, {"id": "S3-P2", "scene": "重保", "type": "正样本", "msg": "重保任务提示：HO1901 要客保障标准已下发，请服保按标准作业程序核对保障要点，并把确认结果回群，请总值班汇总确认结果。", "expect": ["service", "chief"], "not_expect": ["maint", "flight", "ops"], "expected_advice": ["地面接驳", "冲突"], "standard": "服保与总值班触发：服保按《要客与重要保障标准》第 2 章第 2.2 条核对保障要点，总值班按《总值班职责与授权规定》第 3 章第 3.2 条汇总确认结果。维修、飞行、运控不触发。"}, {"id": "S3-N1", "scene": "重保", "type": "负样本", "msg": "HO1901 要客保障任务已取消，本次不涉及机务放行、不涉及机组调整、也不需要航班动态调整，请服保做好记录。", "expect": ["service"], "not_expect": ["maint", "flight", "ops", "chief"], "expected_advice": ["要客"], "standard": "仅服保保留记录；维修、飞行、运控因明确否定而不触发，总值班不触发。用于验证不误推。"}, {"id": "S3-L1", "scene": "重保", "type": "现场抽选", "msg": "重大活动重保航班 HO1901，要客 6 人，需服保落实要客保障与地面接驳、运控核对时刻与签派放行、飞行经理确认机组资质、维修经理确认机务放行状态；请总值班统一口径并汇总冲突点。", "expect": ["service", "ops", "flight", "maint", "chief"], "not_expect": [], "expected_advice": ["地面接驳", "航班时刻", "机组资质", "机务放行", "冲突"], "standard": "期望触发：五个智能体全部触发，无漏项。服保按《要客与重要保障标准》第 2 章第 2.2 条；运控按《运行通告管理办法》第 2 章第 2.4 条与《运控手册》第 5 章第 5.3 条；飞行按《飞行技术标准》第 3 章第 3.4 条；维修按《航材保障程序》第 3 章第 3.1 条；总值班按《总值班职责与授权规定》第 3 章第 3.2 条。全过程记录完整，可用于不正常航班全场景复盘。"}, {"id": "S4-P1", "scene": "突发事件", "type": "正样本", "msg": "大面积延误突发情况：HO1201 临时备降，需运控判断航班动态调整与改航，服保安排备降旅客安置与餐宿，飞行经理确认机组值勤期，维修经理确认备降机场机务保障；请总值班启动应急处置并统一上报。", "expect": ["ops", "service", "flight", "maint", "chief"], "not_expect": [], "expected_advice": ["航班动态", "旅客安置", "值勤期", "机务放行", "应急处置"], "standard": "五个智能体全部触发。运控按《运控手册》第 5 章第 5.3 条给出航班动态调整与改航建议；服保按《不正常航班旅客服务标准》第 6 章第 6.1 条安排旅客安置与餐宿；飞行按《机组管理规定》第 6 章第 6.1 条核算值勤期；维修按《放行标准》第 5 章第 5.1 条确认备降机场机务保障能力；总值班按《应急预案》第 2 章第 2.1 条启动应急处置并统一上报。"}, {"id": "S4-P2", "scene": "突发事件", "type": "正样本", "msg": "突发事件通报：HO1201 航班取消，请服保按不正常航班旅客服务标准安排旅客安置，运控同步发布航班动态调整。", "expect": ["service", "ops"], "not_expect": ["maint", "flight", "chief"], "expected_advice": ["旅客安置", "航班动态"], "standard": "服保与运控触发：服保按《不正常航班旅客服务标准》第 6 章第 6.1 条安排旅客安置；运控按《运控手册》第 5 章第 5.3 条发布航班动态调整。维修、飞行、总值班不触发。"}, {"id": "S4-N1", "scene": "突发事件", "type": "负样本", "msg": "HO1201 航班已正常落地，本次通报仅为归档，不涉及机务放行、不涉及机组调整、也不需要航班动态调整，不涉及旅客安置。", "expect": [], "not_expect": ["maint", "flight", "ops", "service", "chief"], "expected_advice": [], "standard": "五个智能体全部不触发，用于验证纯归档类消息不产生误推。"}, {"id": "S4-L1", "scene": "突发事件", "type": "现场抽选", "msg": "突发：HO1201 因天气临时备降外地，造成大面积延误，需运控判断改航与航班动态调整、服保安排备降旅客安置与餐宿、飞行经理确认机组值勤期、维修经理确认备降机场机务保障能力；请总值班启动应急处置并统一上报口径。", "expect": ["ops", "service", "flight", "maint", "chief"], "not_expect": [], "expected_advice": ["航班动态", "旅客安置", "值勤期", "机务放行", "应急处置"], "standard": "期望触发：五个智能体全部触发。在消息含天气原因、简写和多重诉求的情况下仍正确判断相关席位，不相关席位不误推，每条建议附来源文件名称、章节和条款；全过程记录完整，可用于不正常航班全场景复盘。"}], NEG=["不涉及", "无需", "不需要", "与机务无关", "与旅客无关"], GATES=[["席位召回率", "应当被触发的席位中，实际被触发的比例", "不低于 90%", 90], ["误推率", "不应当被触发的席位中，实际被触发的比例", "不高于 10%", 10], ["串台率", "回答中引用其他岗位知识或把其他岗位职责当成自身职责的比例", "不高于 5%", 5], ["依据可溯源率", "建议中能够标注来源文件名称、章节和条款的比例", "不低于 95%", 95], ["处置建议采纳率", "建议要点命中标准答案关键动作的比例（本原型以要点命中率代理）", "不低于 80%", 80], ["首次响应时延", "从消息注入到第一条建议卡片送达的时间", "不超过 10 秒", 10]], SCENES=["特殊旅客", "飞机故障", "重保", "突发事件"];
+var AVA={}; AGENTS.forEach(function(a){AVA[a.id]=a.short.charAt(0);});
+var SHORT={}; AGENTS.forEach(function(a){SHORT[a.id]=a.short;});
+
+/* 当天值班负责人（Demo 期用固定角色映射；生产中企业微信需额外开发识别当天值班人） */
+var DUTY={
+ chief:{name:'王建国',short:'总值班',role:'总值班（1 号）',phone:'138****2201',team:'白班 08:00–16:00'},
+ ops:{name:'陈敏',short:'运控',role:'运控代班主任',phone:'139****3312',team:'白班 08:00–16:00'},
+ flight:{name:'刘洋',short:'飞行',role:'飞行技术资源',phone:'137****4415',team:'白班 08:00–16:00'},
+ maint:{name:'李强',short:'维修',role:'维修 MCC',phone:'136****5508',team:'白班 08:00–16:00'},
+ service:{name:'赵雪',short:'服保',role:'服保值班',phone:'135****6617',team:'白班 08:00–16:00'}
+};
+var ROLES=['chief','ops','flight','maint','service'];
+/* 当前登录的值班身份：Demo 期可在右上角切换，真实环境一人一号 */
+var ME='ops';
+function meDuty(){return DUTY[ME];}
+function meAv(){return (DUTY[ME].name||'我').charAt(0);}
+function meAgent(){return agent(ME);}
+function pendOf(k){
+  var list=DM[k]||[], n=0;
+  for(var i=0;i<list.length;i++){if(list[i].k==='ask'&&list[i].state!=='done')n++;}
+  return n;
+}
+var KINDS={
+ ops:'签派放行或航班动态调整',
+ flight:'机组值勤期与机组调配',
+ maint:'机务放行与保留故障',
+ service:'旅客服务与地面保障',
+ chief:'跨席位冲突汇总与事件升级'
+};
+
+var GROUPS=[
+ {id:'g1',av:'1234',name:'HO1234 航班保障群',sub:'上海虹桥—北京大兴 · 群成员 28 人',scene:'特殊旅客',flt:'HO1234',route:'虹桥—大兴',plan:'08:40',sender:'签派 张伟',color:'#5B7F9E',n:'28'},
+ {id:'g2',av:'1188',name:'HO1188 航班保障群',sub:'上海浦东—成都天府 · 群成员 24 人',scene:'飞机故障',flt:'HO1188',route:'浦东—天府',plan:'10:15',sender:'MCC 李强',color:'#6E8A5B',n:'24'},
+ {id:'g3',av:'1901',name:'HO1901 重保保障群',sub:'重要保障任务 · 群成员 16 人',scene:'重保',flt:'HO1901',route:'虹桥—深圳',plan:'14:20',sender:'运控 陈敏',color:'#8A6B5B',n:'16'},
+ {id:'g4',av:'1201',name:'HO1201 航班保障群',sub:'上海虹桥—广州白云 · 群成员 26 人',scene:'突发事件',flt:'HO1201',route:'虹桥—白云',plan:'16:05',sender:'签派 周涛',color:'#7A5B8A',n:'26'},
+ {id:'g5',av:'事件',name:'不正常事件发布群',sub:'签派席位发布 · 公司相关部门',scene:'全部',flt:'—',route:'—',plan:'—',sender:'签派席位发布',color:'#5B6B7F',n:'64'}
+];
+var SCENE_GROUP={'特殊旅客':'g1','飞机故障':'g2','重保':'g3','突发事件':'g4'};
+var HIST={}, DM={}, CURG='g1', CURDM=null, LAST=null, CUR=null, LOG=[], TASKS=[], EVENTS=[], MON={on:true,msg:0,slash:0,clause:0,dmSent:0,dmDone:0,pushback:0,issues:{},start:Date.now()};
+GROUPS.forEach(function(g){HIST[g.id]=[];});
+
+function $(id){return document.getElementById(id);}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function pad(n){return ('0'+n).slice(-2);}
+function hm(){var d=new Date();return pad(d.getHours())+':'+pad(d.getMinutes());}
+function hms(){return hm()+':'+pad(new Date().getSeconds());}
+function gid(id){return GROUPS.filter(function(g){return g.id===id;})[0];}
+function agent(id){return AGENTS.filter(function(a){return a.id===id;})[0];}
+function names(list){return list.length?list.map(function(k){return SHORT[k];}).join('、'):'无';}
+function duty(id){return DUTY[id]||{name:'值班人',role:SHORT[id]};}
+
+/* ---------- 判断规则 ---------- */
+function hitsFor(msg,a){
+  var out=[];
+  for(var i=0;i<a.keys.length;i++){
+    var k=a.keys[i], idx=msg.indexOf(k);
+    while(idx>=0){
+      var before=msg.slice(Math.max(0,idx-9),idx), neg=false;
+      for(var j=0;j<NEG.length;j++){ if(before.indexOf(NEG[j])>=0){neg=true;break;} }
+      if(!neg){out.push(k);break;}
+      idx=msg.indexOf(k,idx+1);
+    }
+  }
+  return out;
+}
+function judge(msg){
+  var res={};
+  AGENTS.forEach(function(a){var h=hitsFor(msg,a);res[a.id]={rel:h.length>0,hits:h};});
+  var n=0; for(var k in res){if(res[k].rel)n++;}
+  if(n>=3 && !res.chief.rel){res.chief.rel=true;res.chief.hits=['多个席位同时相关，需汇总冲突点'];res.chief.auto=true;}
+  return res;
+}
+function clausesFor(msg,a){
+  var p=a.kb.filter(function(c){return c.tags.some(function(t){return msg.indexOf(t)>=0;});});
+  if(!p.length)p=[a.kb[0]];
+  return p.slice(0,2);
+}
+function adviceFor(msg,k){
+  return clausesFor(msg,agent(k)).map(function(c){return c.advice;});
+}
+
+/* ---------- 值班身份切换 ---------- */
+function toast(msg){
+  var el=$('toast');
+  if(!el){el=document.createElement('div');el.id='toast';el.className='toast';document.body.appendChild(el);}
+  el.innerHTML=msg;
+  el.classList.add('on');
+  clearTimeout(window._tt);
+  window._tt=setTimeout(function(){el.classList.remove('on');},3200);
+}
+function openRole(){
+  drawRole();
+  $('rmask').classList.add('on');
+}
+function closeRole(){ $('rmask').classList.remove('on'); }
+function drawRole(){
+  var h='';
+  h+='<div class="rhead"><div><div class="rt">当前值班身份</div>'
+    +'<div class="rsub">Demo 期可以在这里切换身份，用来体验不同席位看到的视角。真实环境中一人一号，'
+    +'身份由企业微信或 HOC 识别，不能自行切换。</div></div>'
+    +'<button class="rx" onclick="closeRole()">关闭</button></div>';
+  h+='<div class="rgrid">';
+  ROLES.forEach(function(k){
+    var t=DUTY[k], a=agent(k), n=pendOf(k), on=(k===ME);
+    h+='<div class="rcard'+(on?' on':'')+'" onclick="switchRole(\''+k+'\')">'
+      +'<div class="rav" style="background:'+a.color+'">'+esc(t.name.charAt(0))+'</div>'
+      +'<div class="rtx"><div class="rn">'+esc(t.name)+'<span class="rr">'+esc(t.short)+'</span>'
+      +(on?'<span class="rnow">当前</span>':'')+'</div>'
+      +'<div class="rp">'+esc(t.role)+'</div>'
+      +'<div class="ra">对应智能体：'+esc(a.name)+'</div>'
+      +'<div class="rb">'+esc(t.team)+(n?'　<span class="rw">待确认 '+n+' 条</span>':'　<span class="rg">暂无待确认</span>')+'</div>'
+      +'</div></div>';
+  });
+  h+='</div>';
+  var t=meDuty(), a=meAgent();
+  h+='<div class="rfoot"><b>现在以「'+esc(t.role)+' '+esc(t.name)+'」的身份在群里和私信里操作：</b>'
+    +'可以在《HO1234 航班保障群》等群里以本人名义发言；可以打开与「'+esc(a.name)+'」的私信接收建议、继续追问、'
+    +'确认口径并正式发布决策；决策发布后 5 个智能体重新判断。其他 4 个席位的私信只发给各自负责人，当前身份看不到。'
+    +'</div>';
+  $('rbody').innerHTML=h;
+}
+function switchRole(k){
+  var t=DUTY[k], a=agent(k);
+  var was=ME;
+  ME=k;
+  $('meav').textContent=t.name.charAt(0);
+  $('meav').style.background='linear-gradient(140deg,'+a.color+',rgba(0,0,0,.35))';
+  $('mebtn').textContent=t.name+' · '+t.short;
+  /* 若正停在别的席位的私信里，先退回群，避免串视角 */
+  if(CURDM && CURDM!==k){
+    CURDM=null;
+    $('dmbanner').classList.remove('on');
+    $('gcomposer').style.display='block';
+    $('dmcomposer').style.display='none';
+  }
+  drawList(); drawStream(); drawRole();
+  closeRole();
+  toast('已切换为「'+t.role+' '+t.name+'」，之后的群消息与私信都以这个身份进行'
+    +(k===was?'':'（原身份：'+DUTY[was].name+'）'));
+  var n=pendOf(k);
+  if(n) setTimeout(function(){ toast('「'+t.name+'」还有 '+n+' 条私信待确认，点左侧「我的智能体」查看'); }, 3400);
+  log('切换值班身份：'+t.role+' '+t.name+'（对应智能体：'+a.name+'）');
+}
+
+function applyMe(){
+  var t=DUTY[ME], a=agent(ME);
+  if($('meav')){$('meav').textContent=t.name.charAt(0);$('meav').style.background='linear-gradient(140deg,'+a.color+',rgba(0,0,0,.35))';}
+  if($('mebtn'))$('mebtn').textContent=t.name+' · '+t.short;
+  var ln=$('melin');
+  if(ln)ln.textContent=t.role+' '+t.name;
+}
+function log(t){
+  LOG.push('['+hms()+'] '+t);
+  if($('logbox'))$('logbox').innerHTML=LOG.map(function(x){
+    var i=x.indexOf('] ');
+    return '<div><span class="t">'+esc(x.slice(1,i))+'</span><span>'+esc(x.slice(i+2))+'</span></div>';}).join('');
+}
+function push(o){HIST[CURG].push(o);}
+
+/* ---------- 群聊渲染 ---------- */
+function msgHTML(m){
+  if(m.k==='sys')return '<div class="sysline"><span>'+esc(m.t)+'</span></div>';
+  if(m.k==='in')return '<div class="msg"><div class="ava" style="background:'+(m.color||'#7C8794')+'">'+esc(m.av||'群')+'</div>'
+    +'<div class="body"><div class="meta"><b>'+esc(m.who)+'</b><span>'+esc(m.tm)+'</span></div>'
+    +'<div class="bubble">'+esc(m.t)+'</div></div></div>';
+  if(m.k==='out')return '<div class="msg self"><div class="ava">'+(m.av||'我')+'</div>'
+    +'<div class="body"><div class="meta"><span>'+esc(m.tm)+'</span><b>'+esc(m.who)+'</b></div>'
+    +'<div class="bubble">'+esc(m.t)+'</div></div></div>';
+  if(m.k==='bot'){
+    var a=agent(m.aid), c='';
+    var t=duty(m.aid), st=m.dm?('<span class="st">已私信 '+esc(t.name)+'</span>'):'<span class="st warn">未私信</span>';
+    c+='<div class="msg bot"><div class="ava" style="background:'+a.color+'">'+esc(AVA[m.aid])+'</div><div class="body">'
+      +'<div class="meta"><b>'+esc(a.name)+'</b><span class="tag">应用消息</span><span>'+esc(m.tm)+'</span></div>'
+      +'<div class="card" style="border-top-color:'+a.color+'">'
+      +'<div class="chd"><span style="font-size:12.3px;font-weight:600">处置建议与依据</span>'+st+'</div>'
+      +'<div class="cin"><div class="hit">命中本席位职责：'+esc(m.hits.join('、'))+'</div><ol>';
+    m.adv.forEach(function(x){c+='<li>'+esc(x)+'</li>';});
+    c+='</ol>';
+    m.cls.forEach(function(cl){
+      c+='<div class="clause"><div class="src">依据：'+esc(cl.file)+'　'+esc(cl.chapter)+'　'+esc(cl.clause)+'</div>'
+        +'<div class="ctx">'+esc(cl.text)+'</div></div>';
+    });
+    c+='</div><div class="cft"><span class="who">'
+      +(m.dm?'已同步私信给当天'+esc(t.role)+' '+esc(t.name)+'，等其确认处置口径':'本席位当天值班负责人未识别，仅群内提示')
+      +'</span><button class="pt" onclick="openDMTask(\''+m.aid+'\',\''+m.tid+'\')">查看私信</button></div></div></div></div>';
+    return c;
+  }
+  if(m.k==='receipt')return '<div class="receipt"><div class="rh">↩ 决策回推运行群　<span>来自私信确认 · '+esc(m.who)+'</span></div>'
+    +'<div class="rb">'+esc(m.t)+'</div></div>';
+  if(m.k==='decision'){
+    var dd=agent(m.aid);
+    return '<div class="decision"><div class="dh2"><span class="dg">正式发布决策</span><span class="dw">'+esc(m.who)+' · 经由 '+esc(dd?dd.name:'智能体')+' 正式发布</span><span class="dt">'+esc(m.tm)+'</span></div>'
+      +'<div class="dq2">针对：'+esc((m.of||'').length>72?(m.of.slice(0,72)+'…'):(m.of||''))+'</div>'
+      +'<div class="db2">'+esc(m.t)+'</div></div>';
+  }
+  if(m.k==='verdict')return '';
+  return '';
+}
+function drawStream(){
+  var box=$('stream');
+  if(CURDM){box.innerHTML=DM[CURDM].map(dmHTML).join('');box.scrollTop=box.scrollHeight;return;}
+  var list=HIST[CURG];
+  if(!list.length){box.innerHTML='<div class="sysline"><span>本群暂无消息，可从下方演示控制台注入一条案例，或直接输入群消息。</span></div>';return;}
+  box.innerHTML=list.map(msgHTML).join('');
+  box.scrollTop=box.scrollHeight;
+  requestAnimationFrame(function(){box.scrollTop=box.scrollHeight;});
+}
+
+/* ---------- 私信渲染 ---------- */
+function dmHTML(m){
+  if(m.k==='sys')return '<div class="sysline"><span>'+esc(m.t)+'</span></div>';
+  if(m.k==='ask'){
+    var a=agent(m.aid), t=duty(m.aid), c='';
+    c+='<div class="msg bot"><div class="ava" style="background:'+a.color+'">'+esc(AVA[m.aid])+'</div><div class="body">'
+      +'<div class="meta"><b>'+esc(a.name)+'</b><span class="tag">应用消息 · 私信</span><span>'+esc(m.tm)+'</span></div>'
+      +'<div class="dmcard"><div class="dh"><span class="d1">请您确认处置口径</span><span class="d2">'+esc(m.flt)+'　'+esc(m.route||'')+'</span></div>'
+      +'<div class="db"><div class="ctx">群里的原始消息：'+esc(m.msg)+'</div>'
+      +'请确认以下处置口径（涉及'+esc(KINDS[m.aid]||'本席位职责范围内的事项')+'）：<ul class="opts">';
+    m.adv.forEach(function(x,i){c+='<li><b>建议'+(i+1)+'</b>'+esc(x)+'</li>';});
+    c+='</ul><div style="font-size:11.3px;color:#7C8288;line-height:1.6">依据：'
+      +m.cls.map(function(cl){return esc(cl.file+' '+cl.chapter+' '+cl.clause);}).join('；')+'</div></div>'
+      +'<div class="df"><span class="fw">'
+      +(m.published?('已发布到运行群　'+esc(m.rtm||'')):(m.state==='done'?'口径已确认，待发布。点右侧按钮发到运行群。':'待确认。智能体只是提供建议，授权与责任在您'))
+      +'</span>'
+      +(m.published
+        ? '<button class="done">已发布到运行群</button>'
+        : (m.state==='done'
+          ? '<button class="p" onclick="pubDecision(\''+m.aid+'\',\''+m.tid+'\')">正式发布决策</button>'
+          : '<button class="p" onclick="decide(\''+m.aid+'\',\''+m.tid+'\',\'ok\')">确认按建议处置</button>'
+            +'<button onclick="decide(\''+m.aid+'\',\''+m.tid+'\',\'adj\')">调整后确认</button>'
+            +'<button onclick="decide(\''+m.aid+'\',\''+m.tid+'\',\'hold\')">暂不处置</button>'))
+      +'</div></div></div></div>';
+    return c;
+  }
+  if(m.k==='askmsg')return '<div class="msg self"><div class="ava">'+esc(m.av||meAv())+'</div>'
+    +'<div class="body"><div class="meta"><span>'+esc(m.tm)+'</span><b>'+esc(m.who)+'（我）</b></div>'
+    +'<div class="bubble">'+esc(m.t)+'</div></div></div>';
+  if(m.k==='ans'){
+    var aa=agent(m.aid), cc='';
+    cc+='<div class="msg bot"><div class="ava" style="background:'+aa.color+'">'+esc(AVA[m.aid])+'</div><div class="body">'
+      +'<div class="meta"><b>'+esc(aa.name)+'</b><span class="tag">追问答复</span><span>'+esc(m.tm)+'</span></div>'
+      +'<div class="ansc"><div class="ab">'+esc(m.t).replace(/\n/g,'<br>')+'</div>';
+    if(m.cls&&m.cls.length){
+      m.cls.forEach(function(cl){
+        cc+='<div class="clause"><div class="src">依据：'+esc(cl.file)+'　'+esc(cl.chapter)+'　'+esc(cl.clause)+'</div>'
+          +'<div class="ctx">'+esc(cl.text)+'</div></div>';
+      });
+    }
+    cc+='<div class="anote">可继续追问，确认无误后点上方「正式发布决策」把口径发布到运行群。</div></div></div></div>';
+    return cc;
+  }
+  if(m.k==='out')return '<div class="msg self"><div class="ava">'+esc(m.av||meAv())+'</div>'
+    +'<div class="body"><div class="meta"><span>'+esc(m.tm)+'</span><b>'+esc(m.who)+'（我）</b></div>'
+    +'<div class="bubble">'+esc(m.t)+'</div></div></div>';
+  if(m.k==='push')return '<div class="sysline"><span>'+esc(m.t)+'</span></div>';
+  return '';
+}
+function openDMTask(aid,tid){
+  openDM(aid,tid);
+  var nodes=document.querySelectorAll('#stream .dmcard');
+  for(var i=0;i<nodes.length;i++){
+    var btn=nodes[i].querySelector('.df button.p');
+    if(btn&&btn.getAttribute('onclick')&&btn.getAttribute('onclick').indexOf(tid)>=0){nodes[i].scrollIntoView({block:'center'});break;}
+  }
+}
+function openDM(aid,tid){
+  if(aid!==ME){
+    var other=duty(aid), myself=meDuty();
+    var ok=confirm('这条私信只发给「'+other.role+' '+other.name+'」。\n\n当前身份是「'+myself.role+' '+myself.name+'」，看不到别的席位的私信。\n\n是否切换为「'+other.name+'」的身份查看？');
+    if(!ok){
+      log('已拦截：'+myself.name+' 试图打开 '+other.name+' 的私信——私信只给当天该席位负责人本人');
+      toast('已拦截：私信只发给「'+other.name+'」，当前身份看不到');
+      return;
+    }
+    switchRole(aid);
+  }
+  var key=aid;
+  if(!DM[key])DM[key]=[];
+  CURDM=key;
+  var g=gid(CURG), t=duty(aid), a=agent(aid);
+  $('mt').innerHTML=esc(a.name)+'<em>· 我的智能体</em>';
+  $('msub').textContent='我：'+t.name+' · '+t.short+'　'+t.phone;
+  $('dmbanner').classList.add('on');
+  $('dmbanner').innerHTML='<b>只有您和您的智能体看得到</b>：下面是群消息里与本席位相关的那一段。可以先追问，'
+    +'口径确认后点「正式发布决策」，决策会回到《'+esc(g.name)+'》并触发新一轮判断。'
+    +'<span class="who">当前身份：'+esc(t.name)+' · '+esc(t.short)+'</span>';
+  $('gcomposer').style.display='none';
+  $('dmcomposer').style.display='block';
+  $('mhead').classList.add('dm');
+  if(window.innerWidth<=860)$('chats').classList.remove('show');
+  drawStream(); drawList();
+}
+function backGroup(){
+  CURDM=null;
+  if($('mhead'))$('mhead').classList.remove('dm');
+  $('dmbanner').classList.remove('on');
+  $('gcomposer').style.display='block';
+  $('dmcomposer').style.display='none';
+  selectGroup(CURG);
+}
+function curAsk(aid){
+  var list=DM[aid]||[];
+  for(var i=list.length-1;i>=0;i--){if(list[i].k==='ask'&&list[i].state!=='done')return list[i];}
+  for(var j=list.length-1;j>=0;j--){if(list[j].k==='ask')return list[j];}
+  return null;
+}
+/* 负责人在私信里确认处置口径：确认即视为正式发布，随即回推运行群并进入新一轮 */
+function decide(aid,tid,mode){
+  var key=aid, list=DM[key], t=duty(aid), a=agent(aid);
+  var ask=null; for(var i=0;i<list.length;i++){if(list[i].tid===tid&&list[i].k==='ask')ask=list[i];}
+  if(!ask)return;
+  var txt='';
+  if(mode==='ok'){
+    txt='确认按建议处置：'+ask.adv.join('；')+'。';
+  }else if(mode==='adj'){
+    txt='调整后确认：'+ask.adv[0]+'，其余事项按现场情况另行安排，请群内同步进展。';
+  }else if(mode==='custom'){
+    txt=ask.custom||'按现场情况确定处置口径，具体见本条说明。';
+  }else{
+    txt='暂不处置，继续观察，如情况变化请在群内提醒。';
+  }
+  ask.state='done';
+  ask.rtm=hm();
+  ask.decision=txt;
+  ask.mode=mode;
+  list.push({k:'out',who:t.name,av:t.name.charAt(0),t:txt,tm:hm()});
+  /* 确认只代表口径定了；正式发布是下一步动作，由负责人点「正式发布决策」触发 */
+  list.push({k:'push',t:'口径已确认。点输入框上方「正式发布决策」，才会以您的名义把这条口径发布到《'+ask.gname+'》，发布后 5 个智能体重新判断'});
+  drawStream(); drawList();
+  log('负责人确认口径：'+t.role+' '+t.name+' → '+txt.slice(0,40)+'（尚未发布）');
+}
+/* 正式发布决策：把私信里确定的处置口径作为新决策推回运行群，并触发新一轮集群判断 */
+function publish(aid,ask,txt,mode,t){
+  var a=agent(aid), g=gid(ask.gid);
+  if(ask.published){log('该条决策已发布过，本次不重复推送');return;}
+  ask.published=1;
+  DM[aid].push({k:'push',t:'已在 '+hm()+' 把您的决策正式发布到《'+ask.gname+'》，5 个智能体会重新判断是否需要新的决策'});
+  var dmLine=t.role+' '+t.name+'（'+a.name+'）正式发布决策：'+txt;
+  HIST[ask.gid].push({k:'decision',who:t.role+' '+t.name,aid:aid,t:txt,tm:hm(),of:ask.orig||ask.msg});
+  MON.pushback++; MON.dmDone++; MON.issues[ask.tid]=1;
+  MON.publish=(MON.publish||0)+1;
+  EVENTS.push({tm:hm(),g:g.name,who:t.name+role2(t),act:'正式发布决策',who2:''});
+  drawList();
+  log('决策发布：'+t.role+' '+t.name+'（'+a.name+'）→ '+txt.slice(0,46));
+  /* 新决策作为新消息重新广播给 5 个智能体 */
+  if(ask.gid!==CURG) selectGroup(ask.gid);
+  var full='【决策发布】'+t.role+' '+t.name+'（'+a.name+'）针对「'+(ask.orig||ask.msg)+'」发布决策：'+txt;
+  /* 决策本身作为新消息重新进群判断；不再另插一条全文消息，避免与决策卡片重复 */
+  render(full,'决策发布回群',{silentIn:true,decision:true,via:aid,skipDm:aid});
+}
+/* 正式发布决策：由当前私信里最新的待确认事项发起 */
+function pubDecision(aidIn,tidIn){
+  var aid=aidIn||CURDM;
+  if(!aid){log('请先进入某个席位的私信窗口');return;}
+  var ask=null, list=DM[aid]||[];
+  if(tidIn){ for(var q=0;q<list.length;q++){ if(list[q].k==='ask'&&list[q].tid===tidIn&&!list[q].published){ask=list[q];break;} } }
+  if(!ask){
+    for(var i=list.length-1;i>=0;i--){if(list[i].k==='ask'&&!list[i].published){ask=list[i];break;}}
+  }
+  if(!ask){log('当前私信里没有待发布的确认，无法发布决策');return;}
+  var tail='';
+  for(var z=list.length-1;z>=0;z--){
+    if(list[z].k==='ans'){
+      var first=list[z].t.split('\n')[0].replace(/^[^：]*：/,'');
+      var dot=first.indexOf('。');
+      tail=dot>0?first.slice(0,dot):first;
+      break;
+    }
+  }
+  if(tail && ask.adv.join('；').indexOf(tail.replace(/（[^）]*）/g,'').slice(0,18))>=0) tail='';
+  if(tail && tail.indexOf(ask.adv[0].slice(0,14))>=0) tail='';
+  /* 已确认过的直接沿用负责人确认的口径，未确认的先按建议口径确认 */
+  var txt=ask.decision||('确认按建议处置：'+ask.adv.join('；')+'。'+(tail?'（就追问补充：'+tail.slice(0,44)+'）':''));
+  if(ask.state!=='done'){
+    ask.state='done'; ask.rtm=hm(); ask.mode='custom';
+    DM[aid].push({k:'out',who:duty(aid).name,av:duty(aid).name.charAt(0),t:txt,tm:hm()});
+  }
+  publish(aid,ask,txt,'custom',duty(aid));
+}
+/* 私信继续追问 */
+var QA_RISK={};
+function answer(aid,q){
+  var a=agent(aid), m=q, out=[], cls=[];
+  var isAlt=/别的|其他|替代|还有|备选|换一/.test(m);
+  var isRisk=/风险|后果|影响|不这样|万一|如果不了|后果是/.test(m);
+  var isClause=/依据|条款|哪一条|出处|文件|第几/.test(m);
+  if(isClause){
+    var c0=clausesFor(CURG?curAsk(aid).msg: m, a)[0];
+    var ask0=curAsk(aid);
+    var cs=ask0?ask0.cls:clausesFor(m,a);
+    out.push('这一条建议的依据是：'+cs.map(function(cl){return cl.file+' '+cl.chapter+' '+cl.clause;}).join('；')+'。原文：'+cs.map(function(cl){return cl.text;}).join(' '));
+  }else if(isRisk){
+    var cs2=(curAsk(aid)||{cls:clausesFor(m,a)}).cls;
+    out.push('不按建议处置的风险：'+cs2.map(function(cl){return cl.risk||('可能违反 ' + cl.file + ' ' + cl.chapter + ' ' + cl.clause + ' 的要求');}).join('；')+'。本席位建议先保住合规底线，再讨论效率。');
+  }else if(isAlt){
+    var ask3=curAsk(aid);
+    var cs3=ask3?ask3.cls:clausesFor(m,a);
+    var alts=[];
+    cs3.forEach(function(cl){
+      var adv=cl.advice||'';
+      alts.push('保守做法（建议）：'+adv+'（依据 '+cl.file+' '+cl.chapter+' '+cl.clause+'）');
+      alts.push('提速做法：在不突破 '+cl.file+' '+cl.chapter+' '+cl.clause+' 底线的前提下压缩流程，风险由本席位承担，需要您在群里明确授权');
+    });
+    out.push(alts.join('\n'));
+    out.push('两条路的差别在时效与合规余量：时间还够就走保守做法，时间不够才用提速做法，并且把授权写进决策里。');
+  }else{
+    var cs4=clausesFor(m,a);
+    out.push('就您补充的情况，本席位的意见是：'+cs4[0].advice+'。');
+    if(cs4[1])out.push('同时需要关注：'+cs4[1].advice+'。');
+    cls=cs4;
+  }
+  return {txt:out.join('\n'),cls:cls.length?cls:(curAsk(aid)||{}).cls||clausesFor(m,a)};
+}
+function askQuick(kind){
+  var aid=CURDM; if(!aid)return;
+  var q=kind==='esc'?'这一条的依据出自哪个文件哪一条？':(kind==='alt'?'还有别的处置方案吗？':(kind==='risk'?'不这样处置会有什么风险？':'结束本次确认'));
+  var box=$('dmmsg'); if(box)box.value=q;
+  if(kind==='close'){ if(box)box.value=''; log('负责人结束本次确认（未发布决策）'); DM[aid].push({k:'sys',t:'您结束了本次确认。智能体不会在群里替您发布任何内容，需要时可在群里重新提问。'}); drawStream(); drawList(); return; }
+  ask();
+}
+function ask(){
+  var aid=CURDM; if(!aid){return;}
+  var box=$('dmmsg'), q=box?box.value.trim():'';
+  if(!q){if(box)box.focus();return;}
+  box.value='';
+  var t=duty(aid), a=agent(aid);
+  if(!DM[aid])DM[aid]=[];
+  DM[aid].push({k:'askmsg',who:t.name,av:t.name.charAt(0),t:q,tm:hm()});
+  var r=answer(aid,q);
+  DM[aid].push({k:'ans',aid:aid,t:r.txt,tm:hm(),cls:r.cls,q:q});
+  MON.qa=(MON.qa||0)+1;
+  drawStream(); drawList();
+  log('私信追问：'+t.role+' '+t.name+' → '+a.name+'：'+q.slice(0,40));
+}
+function role2(t){return '（'+t.role+'）';}
+
+/* ---------- 会话列表 ---------- */
+function drawList(){
+  var h='<div class="csec">航班保障群</div>';
+  GROUPS.forEach(function(g){
+    if(g.id==='g5')return;
+    var list=HIST[g.id], last=list.length?list[list.length-1]:null;
+    var pv='已建立保障群，等待消息';
+    if(last){
+      if(last.k==='bot')pv='【应用消息】'+SHORT[last.aid]+'已给出处置建议';
+      else if(last.k==='receipt')pv='【决策回推】'+last.who+'已确认';
+      else pv=(last.t||'');
+    }
+    var lt=(last&&last.tm)?last.tm:hm();
+    var unread=list.filter(function(x){return x.k==='receipt'}).length;
+    h+='<div class="citem'+(g.id===CURG?' on':'')+'" onclick="backGroupTo(\''+g.id+'\')">'
+      +'<div class="gv" style="background:'+g.color+'">'+esc(g.av)+'</div>'
+      +'<div class="gt"><div class="n">'+esc(g.name)+'</div><div class="p">'+esc(pv)+'</div></div>'
+      +'<div class="tm">'+esc(lt)+'</div>'+(unread?'<div class="ub">'+unread+'</div>':'')+'</div>';
+  });
+  h+='<div class="csec">其他</div>';
+  var g5=gid('g5'), l5=HIST.g5;
+  h+='<div class="citem'+(CURG==='g5'?' on':'')+'" onclick="backGroupTo(\'g5\')">'
+    +'<div class="gv" style="background:'+g5.color+'">'+esc(g5.av)+'</div>'
+    +'<div class="gt"><div class="n">'+esc(g5.name)+'</div><div class="p">签派在信息平台勾选席位发布</div></div>'
+    +'<div class="tm">'+hm()+'</div></div>';
+  h+='<div class="csec">我的智能体（私信）</div>';
+  (function(){
+    var k=ME, list=DM[k]||[], last=list.length?list[list.length-1]:null;
+    var t=DUTY[k], a=agent(k), pend=pendOf(k);
+    var pv=pend?('有 '+pend+' 条建议待确认'):(last?(last.t||''):'等待私信，暂无消息');
+    h+='<div class="citem'+(CURDM===k?' on':'')+'" onclick="openDM(\''+k+'\',null)">'
+      +'<div class="gv" style="background:'+a.color+'">'+esc(SHORT[k])+'<span class="dm"></span></div>'
+      +'<div class="gt"><div class="n">'+esc(a.name)+'</div><div class="p">我：'+esc(t.name)+' · '+esc(pv)+'</div></div>'
+      +(pend?'<div class="ub">'+pend+'</div>':'<div class="tm">'+hm()+'</div>')+'</div>';
+    h+='<div class="mytip">私信只显示 <b>'+esc(t.name)+'</b> 本人，其他席位互不可见</div>';
+  })();
+  $('clist').innerHTML=h;
+}
+function backGroupTo(id){
+  CURDM=null;$('dmbanner').classList.remove('on');$('gcomposer').style.display='block';
+  $('dmcomposer').style.display='none';
+  selectGroup(id);
+}
+function selectGroup(id){
+  CURG=id;
+  if($('mhead'))$('mhead').classList.remove('dm');
+  var g=gid(id);
+  $('mt').innerHTML=esc(g.name)+'<em>（'+esc(g.n)+'）</em>';
+  $('msub').textContent=g.sub;
+  drawList();
+  if(window.innerWidth<=860)$('chats').classList.remove('show');
+  drawStream();
+}
+
+/* ---------- 群消息进入：判断 → 群内建议 → 私信决策 ---------- */
+function render(msg, mode, opt){
+  opt = opt || {};
+  var t0 = performance.now(), r = judge(msg);
+  var rel=Object.keys(r).filter(function(k){return r[k].rel;});
+  var off=Object.keys(r).filter(function(k){return !r[k].rel;});
+  var g=gid(CURG), tm=hm(), tid='E'+Date.now().toString().slice(-6);
+
+  if(!opt.silentIn){
+    var who=opt.who||g.sender, av=opt.av||who.slice(0,2);
+    push({k:opt.self?'out':'in',who:who,color:g.color,av:av,t:msg,tm:tm});
+  }
+  MON.msg++;
+
+  var adviceN=0, clauseN=0, txt=[];
+  rel.forEach(function(k){
+    var a=agent(k), cls=clausesFor(msg,a), adv=[];
+    cls.forEach(function(c){adv.push(c.advice);adviceN++;clauseN++;txt.push(c.advice);});
+    push({k:'bot',aid:k,hits:r[k].hits,adv:adv,cls:cls,dm:true,tid:tid,tm:hm()});
+    /* 私信：只把与本席位相关的部分发给当天负责人；决策发布者本人不再重复推送 */
+    if(opt.skipDm && k===opt.skipDm)return;
+    if(!DM[k])DM[k]=[];
+    DM[k].push({k:'ask',aid:k,tid:tid,msg:msg,adv:adv,cls:cls,flt:g.flt,route:g.route,gname:g.name,gid:g.id,state:'wait',tm:hm()});
+    if(!DM[k]._boot){DM[k].unshift({k:'sys',t:'本窗口为智能体与当天值班负责人的私信，只推送与本席位相关的信息，不打扰其他席位'});DM[k]._boot=1;}
+    MON.dmSent++;
+    if(opt.decision)MON.dmNew=(MON.dmNew||0)+1;
+    log((opt.decision?'新一轮判断 · ':'')+'私信推送：'+a.name+' → '+duty(k).role+' '+duty(k).name+'（群消息与本席位相关部分）');
+  });
+  var latency=(performance.now()-t0)/1000;
+  var line=(opt.decision?'决策发布后，5 个智能体重新判断：':"5 个智能体并行判断完成：")+rel.length+' 个席位与本次消息相关（'+names(rel)+'）';
+  if(off.length)line+='；'+names(off)+'判断与本席位无关，不在群内发言、不发私信';
+  if(opt.decision&&opt.skipDm)line+='；发布决策的'+SHORT[opt.skipDm]+'席位本轮不再重复收私信，其余相关席位照常接收';
+  line+='。本地规则计算耗时 '+latency.toFixed(3)+' 秒。';
+  push({k:'sys',t:line});
+
+  LAST={msg:msg,rel:rel,off:off,advice:txt,clauses:clauseN,adviceN:adviceN,latency:latency,mode:mode||'手动输入',tid:tid};
+  drawStream(); drawJudge(r); drawList();
+
+  log('消息进入 '+g.name+'：'+msg.slice(0,48)+(msg.length>48?'…':'')+'（来源：'+(mode||'手动输入')+'）');
+  log('集群判断：'+rel.length+' 个席位相关（'+names(rel)+'），'+off.length+' 个席位不输出、不打扰');
+  log('建议输出：'+adviceN+' 条建议，'+clauseN+' 条均附来源文件、章节与条款；已私信 '+rel.length+' 位值班负责人待确认');
+}
+function drawJudge(r){
+  var h='';
+  AGENTS.forEach(function(a){
+    var v=r?r[a.id]:null, t=duty(a.id), dmList=DM[a.id]||[];
+    var ask=null; if(v&&v.rel){for(var i=dmList.length-1;i>=0;i--){if(dmList[i].k==='ask'){ask=dmList[i];break;}}}
+    var flow='';
+    if(v&&v.rel){
+      flow='<div class="flowmini"><span class="sp ok">群内建议</span><span class="ar">→</span>'
+        +'<span class="sp '+(ask?((ask.state==='done')?'ok':'wait'):'no')+'">私信 '+esc(t.name)+'：'+(ask?((ask.state==='done')?'已确认':'待确认'):'未识别')+'</span>'
+        +'<span class="ar">→</span><span class="sp '+(ask&&ask.state==='done'?'ok':'')+'">回推运行群</span></div>';
+    }
+    h+='<div class="jrow'+(v&&v.rel?'':' off')+'">'
+      +'<div class="jh"><span class="dt2" style="background:'+a.color+'"></span>'+esc(a.name)
+      +'<span class="stt">'+(v?(v.rel?'判断相关':'不相关'):'待判断')+'</span></div>'
+      +'<div class="jm">'+(v?(v.rel?('命中：'+esc(v.hits.join('、'))+(v.auto?'（多席汇总）':'')+'；'+clausesFor(LAST.msg,a).length+' 条建议已附依据'):esc(a.desc)):'尚未收到消息')+'</div>'
+      +flow+'</div>';
+  });
+  $('agents').innerHTML=h||'<div style="font-size:11.5px;color:#9AA0A6;padding:6px 2px 10px">尚未收到群消息。从下方演示控制台注入一条案例，或直接输入消息。</div>';
+  if(r&&LAST){
+    var dmDone=LAST.rel.filter(function(k){var l=DM[k]||[];return l.some(function(x){return x.k==='ask'&&x.state==='done';});});
+    $('summary').innerHTML=
+       '<div class="box"><b>'+LAST.rel.length+'</b> 个席位判断相关：'+esc(names(LAST.rel))+'</div>'
+      +'<div class="box"><b>'+LAST.rel.length+'</b> 条私信已发出，<b>'+dmDone.length+'</b> 位负责人已确认</div>'
+      +'<div class="box"><b>'+MON.pushback+'</b> 条决定已回推运行群</div>';
+    $('human').innerHTML='<b>人在回路：</b>智能体在群里给建议，负责人可在私信里继续追问把口径问清楚；'
+      +'确认后由智能体以负责人的名义把决策正式发布到运行群，<b>5 个智能体随即重新判断是否需要新的决策</b>。'
+      +'授权、决策、责任仍由值班负责人承担。点各方块中的「查看私信」可直接进入私信窗口。';
+  }
+}
+
+/* ---------- 演示操作 ---------- */
+function send(){
+  var m=$('msg').value.trim();
+  if(!m){$('msg').focus();return;}
+  if(CURDM){toast('当前在私信窗口，请先返回保障群再发群消息');return;}
+  var t=meDuty();
+  $('msg').value='';
+  render(m,'群内发言（'+t.name+'）',{self:true,who:t.name+' · '+t.short,av:t.name.charAt(0)});
+}
+function useCase(c){
+  if(!c)return;
+  var g=SCENE_GROUP[c.scene];
+  if(g&&g!==CURG)selectGroup(g);
+  $('msg').value='';
+  render(c.msg,'案例 '+c.id+'（'+c.type+'）');
+}
+function inject(id){useCase(CASES.filter(function(x){return x.id===id;})[0]);}
+function injectScene(i){
+  var c=CASES.filter(function(x){return x.scene===SCENES[i]&&x.type==='正样本';})[0];
+  useCase(c);
+}
+function injectNeg(){
+  var id=$('negsel').value;
+  if(!id){log('未选择负样本案例');return;}
+  inject(id);
+}
+function clearAll(){HIST[CURG]=[];drawStream();drawList();$('agents').innerHTML='';$('summary').innerHTML='';$('human').innerHTML='';}
+function resetAll(){
+  GROUPS.forEach(function(g){HIST[g.id]=[];});
+  LOG=[];DM={};LAST=null;CUR=null;TASKS=[];EVENTS=[];CURDM=null;
+  MON={on:true,msg:0,slash:0,clause:0,dmSent:0,dmDone:0,pushback:0,issues:{},start:Date.now()};
+  ME='ops'; applyMe();
+  $('dmbanner').classList.remove('on');$('composer').style.display='';
+  $('gcomposer').style.display='block';$('dmcomposer').style.display='none';
+  if($('mhead'))$('mhead').classList.remove('dm');
+  if($('logbox'))$('logbox').innerHTML='';
+  boot();drawJudge(null);selectGroup('g1');$('agents').innerHTML='';
+  $('summary').innerHTML='';$('human').innerHTML='等待消息。智能体只给出建议与依据条款，授权、决策、责任仍由值班人员承担。';
+}
+
+/* ---------- 六项指标回放 ---------- */
+function replay(){
+  var t0=performance.now(), rh=0,rt=0,fh=0,ft=0,ah=0,at=0,adviceN=0,clauseN=0;
+  var pool=CASES.filter(function(c){return c.type!=='现场抽选';});
+  pool.forEach(function(c){
+    var r=judge(c.msg), rel=Object.keys(r).filter(function(k){return r[k].rel;}), txt=[];
+    rt+=c.expect.length;c.expect.forEach(function(k){if(rel.indexOf(k)>=0)rh++;});
+    ft+=c.not_expect.length;c.not_expect.forEach(function(k){if(rel.indexOf(k)>=0)fh++;});
+    rel.forEach(function(k){clausesFor(c.msg,agent(k)).forEach(function(cl){txt.push(cl.advice);adviceN++;clauseN++;});});
+    var joined=txt.join(' ');at+=c.expected_advice.length;
+    c.expected_advice.forEach(function(w){if(joined.indexOf(w)>=0)ah++;});
+  });
+  var elapsed=(performance.now()-t0)/1000, latency=elapsed/pool.length;
+  var vals=[100*rh/rt,100*fh/ft,0,100*clauseN/adviceN,100*ah/at,latency];
+  var isRef=[false,false,true,true,false,true];
+  var html='';
+  for(var i=0;i<GATES.length;i++){
+    var g=GATES[i], v=vals[i], gate=g[3];
+    var ok=(i===0||i===3||i===4)?v>=gate:v<=gate;
+    var cls=isRef[i]?'ref':(ok?'pass':'fail');
+    var txt=isRef[i]?'参考值':(ok?'通过':'未通过');
+    var val=(i===5)?v.toFixed(3)+' 秒':v.toFixed(1)+'%';
+    html+='<div class="mcard"><span class="mv">'+val+'</span><div class="mn">'+esc(g[0])+'</div>'
+      +'<div class="mg">'+esc(g[1])+'</div><div class="mg">门槛：'+esc(g[2])+' · <span class="'+cls+'">'+txt+'</span></div></div>';
+  }
+  $('metrics').innerHTML=html;
+  $('metricnote').innerHTML='回放 '+pool.length+' 条脚本案例（四大场景各 2 条正样本、1 条负样本）。'
+    +'<b>口径说明：</b>规则版原型用职责关键词匹配模拟判断，因此串台率恒为 0、依据可溯源率恒为 100%，'
+    +'首次响应时延为本地规则计算耗时（不含模型推理与网络）；这三项在接入神州问学平台与模型之后，'
+    +'必须用同一套案例集重新测量。席位召回率、误推率、建议要点命中率可用于验证消息路由与案例集本身。';
+  log('回放全部 '+pool.length+' 条脚本案例，计算六项指标');
+}
+
+/* ---------- 现场抽选 ---------- */
+function draw(){
+  var pool=CASES.filter(function(c){return c.type==='现场抽选';});
+  CUR=pool[Math.floor(Math.random()*pool.length)];
+  $('drawname').textContent='抽中场景：'+CUR.scene+'（'+CUR.id+'）';
+  $('drawmsg').textContent=CUR.msg;
+  $('answer').style.display='none';$('answer').innerHTML='';
+  $('reveal').disabled=false;$('drawrun').disabled=false;
+  $('record').textContent='';$('copyrec').disabled=true;
+  var g=SCENE_GROUP[CUR.scene];if(g)backGroupTo(g);
+  $('msg').value='';
+  push({k:'sys',t:'路演现场抽选：'+CUR.scene+'（'+CUR.id+'），等待注入消息并核验判断结果'});
+  drawStream();
+  log('现场抽选实测：抽中 '+CUR.scene+'（'+CUR.id+'）');
+}
+function drawRun(){
+  if(!CUR)return;
+  $('msg').value='';
+  render(CUR.msg,'现场抽选 · '+CUR.scene);
+  $('record').textContent='';$('copyrec').disabled=true;
+}
+function reveal(){
+  if(!CUR)return;
+  var r=judge(CUR.msg), rel=Object.keys(r).filter(function(k){return r[k].rel;});
+  $('answer').innerHTML='<b>标准答案</b><br>'+esc(CUR.standard)
+    +'<br><br><b>期望触发席位：</b>'+esc(names(CUR.expect))
+    +'　<b>期望不触发席位：</b>'+esc(names(CUR.not_expect))
+    +'<br><b>建议要点：</b>'+esc(CUR.expected_advice.join('、'))
+    +'<br><b>本次实际触发：</b>'+esc(names(rel));
+  $('answer').style.display='block';
+  buildRecord();
+}
+function buildRecord(){
+  if(!CUR)return;
+  var r=judge(CUR.msg), rel=Object.keys(r).filter(function(k){return r[k].rel;});
+  var miss=CUR.expect.filter(function(k){return rel.indexOf(k)<0;});
+  var extra=CUR.not_expect.filter(function(k){return rel.indexOf(k)>=0;});
+  $('record').textContent=
+     '现场抽选场景实测记录\n'
+    +'时间：'+hms()+'　场景：'+CUR.scene+'（'+CUR.id+'）\n'
+    +'注入消息：'+CUR.msg+'\n'
+    +'期望触发席位：'+names(CUR.expect)+'\n'
+    +'本次实际触发：'+names(rel)+'\n'
+    +'私信已发：'+rel.map(function(k){return duty(k).role+' '+duty(k).name;}).join('、')+'\n'
+    +'漏触发：'+(miss.length?names(miss):'无')+'　误触发：'+(extra.length?names(extra):'无')+'\n'
+    +'现场结论：'+(miss.length||extra.length?'需复核':'与标准答案一致')+'\n';
+  $('copyrec').disabled=false;
+  log('现场对照：漏触发 '+(miss.length?names(miss):'无')+'，误触发 '+(extra.length?names(extra):'无'));
+}
+function copyRecord(){
+  var t=$('record').textContent;
+  if(!t)return;
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(t).then(function(){alert('现场记录已复制');},function(){alert(t);});
+  }else{alert(t);}
+}
+
+/* ---------- 复盘：按群聊上下文整理 ---------- */
+function review(){
+  var body=$('rvbody'), g=gid(CURDM?CURG:CURG), list=HIST[g.id];
+  var msgs=list.filter(function(x){return x.k==='in'||x.k==='out';});
+  var bots=list.filter(function(x){return x.k==='bot';});
+  var rec=list.filter(function(x){return x.k==='decision';});
+  var seats={}; bots.forEach(function(b){seats[b.aid]=(seats[b.aid]||0)+1;});
+  var totalMin=Math.max(1,Math.round((Date.now()-MON.start)/60000));
+  var h='';
+  h+='<div class="panel2"><h3>一、事件概览<span>'+esc(g.name)+' · 共 '+list.length+' 条会话记录</span></h3>'
+   +'<table class="dt"><tr><th>项目</th><th>内容</th></tr>'
+   +'<tr><td>航班</td><td>'+esc(g.flt)+'（'+esc(g.route)+'），计划 '+esc(g.plan)+'</td></tr>'
+   +'<tr><td>群内消息</td><td>'+msgs.length+' 条（含本人发言）</td></tr>'
+   +'<tr><td>智能体建议</td><td>'+bots.length+' 条，涉及席位：'+esc(Object.keys(seats).map(function(k){return SHORT[k]+'×'+seats[k];}).join('、')||'无')+'</td></tr>'
+   +'<tr><td>正式发布决策</td><td>'+rec.length+' 条（负责人在私信中确认并正式发布，含由此触发的新一轮判断）</td></tr>'
+   +'<tr><td>是否闭环</td><td>'+(rec.length?'<span class="chip g">已闭环</span>':'<span class="chip a">待确认</span>')+'</td></tr>'
+   +'</table></div>';
+
+  h+='<div class="panel2"><h3>二、按时间还原的决策链路<span>从群消息到处置结论</span></h3><table class="dt">'
+   +'<tr><th style="width:64px">时间</th><th style="width:92px">环节</th><th>内容</th></tr>';
+  list.forEach(function(m){
+    if(m.k==='sys')return;
+    if(m.k==='in')h+='<tr><td>'+esc(m.tm)+'</td><td><span class="chip b">群消息</span></td><td>'+esc(m.who)+'：'+esc(m.t)+'</td></tr>';
+    if(m.k==='out')h+='<tr><td>'+esc(m.tm)+'</td><td><span class="chip b">群内发言</span></td><td>'+esc(m.who)+'：'+esc(m.t)+'</td></tr>';
+    if(m.k==='bot')h+='<tr><td>'+esc(m.tm)+'</td><td><span class="chip m">群内建议</span></td><td>'+esc(SHORT[m.aid])+'：'+esc(m.adv.join('；'))+'</td></tr>';
+    if(m.k==='decision')h+='<tr><td>'+esc(m.tm||'')+'</td><td><span class="chip g">正式发布决策</span></td><td>'+esc(m.who)+'：'+esc(m.t)+'</td></tr>';
+  });
+  h+='</table></div>';
+
+  var allCls=[]; bots.forEach(function(b){b.cls.forEach(function(cl){allCls.push(cl);});});
+  h+='<div class="panel2"><h3>三、依据条款留存<span>共 '+allCls.length+' 条，可逐条回溯到手册原文</span></h3><table class="dt">'
+   +'<tr><th style="width:210px">来源文件与条款</th><th>条款要点</th></tr>';
+  allCls.forEach(function(cl){h+='<tr><td>'+esc(cl.file)+'　'+esc(cl.chapter)+'　'+esc(cl.clause)+'</td><td>'+esc(cl.text)+'</td></tr>';});
+  if(!allCls.length)h+='<tr><td colspan="2" style="color:#9AA0A6">本群暂无智能体建议，未产生依据条款。</td></tr>';
+  h+='</table></div>';
+
+  var miss=[],adv=[];
+  bots.forEach(function(b){if(b.adv)adv.push(SHORT[b.aid]+'：'+b.adv.join('；'));});
+  h+='<div class="panel2"><h3>四、可沉淀为知识资产的部分<span>事件结束后自动汇总，供知识库迭代</span></h3>'
+   +'<div class="two"><div><div class="dsec">已产生的可复用条目</div><div class="rec">'
+   +'· 席位判断案例 '+bots.length+' 条（'+Object.keys(seats).map(function(k){return SHORT[k];}).join('、')+'）\n'
+   +'· 建议与依据配对 '+allCls.length+' 组，可直接作为知识库样例\n'
+   +'· 决策结论 '+rec.length+' 条，可作为下次同类事件的标准答案\n'
+   +'· 决策后触发的新一轮判断 '+(MON.dmNew||0)+' 次私信，形成「决策—再判断」的完整链条\n'
+   +'· 误推与漏推记录：本次无（规则版原型）</div></div>'
+   +'<div><div class="dsec">建议写入知识库的条目</div><div class="rec">'
+   +(adv.length?adv.slice(0,6).map(function(x){return '· '+x;}).join('\n'):'· 本群暂无建议可沉淀')
+   +'</div></div></div></div>';
+  body.innerHTML=h;
+  openView('rv');
+  log('按群聊上下文生成复盘：'+g.name+'，'+list.length+' 条记录，'+allCls.length+' 条依据条款');
+}
+
+/* ---------- 24 小时监控台 ---------- */
+function monitor(){
+  var up=Math.floor((Date.now()-MON.start)/1000);
+  $('monup').textContent=Math.floor(up/60)+' 分 '+pad(up%60)+' 秒';
+  var rel=LAST?LAST.rel.length:0;
+  var kpi=[
+    {n:'监听的保障群',v:4,u:'个',d:'HOC 自动建群实时接入'},
+    {n:'已处理群消息',v:MON.msg,u:'条',d:'消息进入即触发判断'},
+    {n:'私信已推送',v:MON.dmSent,u:'条',d:'只推给相关席位负责人'},
+    {n:'决策已回推',v:MON.pushback,u:'条',d:'负责人确认后自动回群'},
+    {n:'最近一次判断相关席位',v:rel,u:'个',d:rel?'':'尚无消息'},
+    {n:'依据条款引用',v:(LAST?LAST.clauses:0),u:'条',d:'均含文件名、章节与条款'}
+  ];
+  var h='<div class="vgrid">';
+  kpi.forEach(function(k){
+    h+='<div class="kpi"><div class="kn">'+esc(k.n)+'</div><div class="kv">'+k.v+'<small>'+k.u+'</small></div><div class="kd">'+esc(k.d)+'</div></div>';
+  });
+  h+='</div>';
+
+  h+='<div class="panel2"><h3>三班值守与值班负责人<span>Demo 期用固定角色映射；生产中企业微信识别当天值班人需额外开发</span></h3><div class="shift">';
+  var sh=[['08:00–16:00','白班',['王建国','陈敏','刘洋','李强','赵雪']],
+          ['16:00–24:00','中班',['孙浩','吴瑾','郑凯','马超','周琳']],
+          ['00:00–08:00','夜班',['黄磊','徐婷','何军','高鹏','林静']]];
+  var meName=DUTY[ME].name;
+  function mark(n){return n===meName?'<b style="color:#7F094A">'+n+'（我）</b>':n;}
+  sh.forEach(function(s,i){
+    h+='<div class="shcard"><div class="st">'+s[0]+' '+s[1]+(i===0?'<span class="chip g">当前班次</span>':'<span class="chip m">已排班</span>')+'</div>'
+      +'<div class="sm">总值班：'+mark(s[2][0])+'<br>运控：'+mark(s[2][1])+'　飞行：'+mark(s[2][2])+'<br>维修：'+mark(s[2][3])+'　服保：'+mark(s[2][4])+'</div></div>';
+  });
+  h+='</div><div class="mnote">三班人员为演示样例。Demo 期私信只发给当前当班负责人（固定角色映射），'
+   +'生产中企业微信需额外开发识别「当天哪个席位由谁值班」，HOC 系统已能识别。</div>';
+  var ev=EVENTS.slice().reverse();
+  h+='<div class="panel2"><h3>监控流水<span>群消息 → 判断 → 私信 → 决策回推，按时间留痕</span></h3><div class="feed">';
+  ev.forEach(function(e){
+    h+='<div class="fi"><span class="ft">'+esc(e.tm)+'</span><span class="fa">'+esc(e.who)+'</span><span>'+esc(e.act)+'</span></div>';
+  });
+  if(!ev.length)h+='<div style="font-size:11.5px;color:#9AA0A6;padding:6px 0">还没有决策记录。先在群里注入一条案例，再进对应席位的私信确认口径并点「正式发布决策」，这里就会出现流水。</div>';
+  h+='</div></div>';
+
+  h+='<div class="panel2"><h3>监控规则<span>本期只做提醒，不做自动处置</span></h3><table class="dt">'
+   +'<tr><th style="width:150px">监控项</th><th>触发条件</th><th style="width:110px">动作</th></tr>'
+   +'<tr><td>信息未响应</td><td>群内消息出现席位关键词，但对应席位 15 分钟内未在任何窗口响应</td><td><span class="chip a">私信提醒</span></td></tr>'
+   +'<tr><td>决策待确认</td><td>建议卡片发出后，负责人超过 10 分钟未在私信中确认</td><td><span class="chip a">二次提醒</span></td></tr>'
+   +'<tr><td>多席位冲突</td><td>3 个以上席位同时判断相关，且建议之间存在冲突</td><td><span class="chip b">升级总值班</span></td></tr>'
+   +'<tr><td>条款缺失</td><td>建议无法匹配到可引用条款</td><td><span class="chip r">提示知识库缺口</span></td></tr>'
+   +'</table><div class="mnote">说明：监控项与提醒时限是小组建议值，需在 11 月 19 日路演时与各席位确认；'
+   +'智能体只做提醒与建议，不代替值班人员处置。</div></div>';
+  $('monbody').innerHTML=h;
+  openView('mon');
+  log('打开 24 小时监控台');
+}
+
+/* ---------- 正常性分析与可视化 ---------- */
+function ontime(){
+  var rows=GROUPS.filter(function(g){return g.id!=='g5';});
+  var dep=0, arr=0, n=0, delay=0, reasons={};
+  var sc=['特殊旅客','飞机故障','重保','突发事件'];
+  rows.forEach(function(g,i){
+    var hit=HIST[g.id].some(function(x){return x.k==='receipt';});
+    var d=[0,18,3,45][i], ok=!hit&&d===0;
+    n++; if(ok)dep++; if(ok)arr++;
+    delay+=d;
+    if(d>0)reasons[i===1?'飞机故障':'天气']=(reasons[i===1?'飞机故障':'天气']||0)+1;
+    g._d=d;g._hit=hit;
+  });
+  var rate=Math.round(100*dep/Math.max(1,n));
+
+  var h='<div class="vgrid">';
+  h+='<div class="kpi '+(rate>=80?'ok':'warn')+'"><div class="kn">出港正常性</div><div class="kv">'+rate+'<small>%</small></div><div class="kd">'+dep+' / '+n+' 班正常</div></div>';
+  h+='<div class="kpi"><div class="kn">平均延误</div><div class="kv">'+Math.round(delay/Math.max(1,n))+'<small>分钟</small></div><div class="kd">含 1 班机械原因、1 班天气原因</div></div>';
+  var iss=Object.keys(MON.issues).length;
+  h+='<div class="kpi ok"><div class="kn">信息闭环率</div><div class="kv">'+Math.round(100*iss/Math.max(1,MON.msg))+'<small>%</small></div><div class="kd">'+iss+' 个事件已回推决策 / 共 '+MON.msg+' 条群消息</div></div>';
+  h+='<div class="kpi"><div class="kn">私信送达与确认</div><div class="kv">'+MON.dmDone+'<small>/ '+MON.dmSent+'</small></div><div class="kd">私信全部送达当天负责人，已确认 '+MON.dmDone+' 项</div></div>';
+  h+='</div>';
+
+  h+='<div class="panel2"><h3>航班正常性明细<span>颜色对应群聊中的处置状态</span></h3><table class="dt">'
+   +'<tr><th>航班</th><th>航段</th><th>计划</th><th>状态</th><th>延误</th><th>关联场景</th><th>信息闭环</th></tr>';
+  var st=['正常','延误','正常','延误'];
+  rows.forEach(function(g,i){
+    h+='<tr><td><b>'+esc(g.flt)+'</b></td><td>'+esc(g.route)+'</td><td>'+esc(g.plan)+'</td>'
+      +'<td><span class="chip '+(st[i]==='正常'?'g':'a')+'">'+st[i]+'</span></td>'
+      +'<td>'+(g._d?g._d+' 分钟':'—')+'</td><td>'+esc(g.scene)+'</td>'
+      +'<td>'+(g._hit?'<span class="chip g">已回推</span>':'<span class="chip m">本班无保障事件</span>')+'</td></tr>';
+  });
+  h+='</table><div class="mnote">正常性数据为演示用固定样例，正式版按只读取数方式接入运行数据，不改动生产系统。</div></div>';
+
+  // 可视化：延误原因与席位响应
+  var totalD=delay||1;
+  var bars=[['天气',Math.round(totalD*0.45)],['飞机故障',Math.round(totalD*0.30)],['流量控制',Math.round(totalD*0.15)],['旅客原因',Math.round(totalD*0.10)]];
+  h+='<div class="two">';
+  h+='<div class="panel2"><h3>延误原因构成<span>按延误时长占比（分钟）</span></h3><div class="bars">';
+  bars.forEach(function(b,i){
+    var w=Math.round(100*b[1]/totalD), col=['#7F094A','#A5805B','#4A6E8A','#5B7F6B'][i];
+    h+='<div class="bar"><span class="bn">'+b[0]+'</span><span class="bt"><i style="width:'+w+'%;background:'+col+'"></i></span><span class="bv">'+b[1]+'′</span></div>';
+  });
+  h+='</div><div class="legend"><span><i style="background:#7F094A"></i>天气</span><span><i style="background:#A5805B"></i>飞机故障</span>'
+   +'<span><i style="background:#4A6E8A"></i>流量控制</span><span><i style="background:#5B7F6B"></i>旅客原因</span></div></div>';
+
+  h+='<div class="panel2"><h3>各席位响应与决策状态<span>私信送达与回推情况</span></h3><div class="bars">';
+  AGENTS.forEach(function(a){
+    var list=DM[a.id]||[], asks=list.filter(function(x){return x.k==='ask';}), done=asks.filter(function(x){return x.state==='done';});
+    var w=asks.length?Math.round(100*done.length/asks.length):0;
+    h+='<div class="bar"><span class="bn">'+esc(a.short)+'</span><span class="bt"><i style="width:'+Math.max(w,asks.length?4:0)+'%;background:'+a.color+'"></i></span>'
+      +'<span class="bv" style="width:64px">'+done.length+'/'+asks.length+'</span></div>';
+  });
+  h+='</div><div class="mnote">分母为私信收到的待确认事项，分子为已确认并回推运行群的数量。</div></div>';
+  h+='</div>';
+
+  // 趋势
+  h+='<div class="panel2"><h3>近 12 小时信息量与决策量<span>趋势示意，正式版接只读运行数据</span></h3>'+trendSVG()+'</div>';
+
+  h+='<div class="panel2"><h3>本班运行小结<span>可直接用于交班与复盘</span></h3><div class="rec">'
+   +'· 出港正常性 '+rate+'%，平均延误 '+Math.round(delay/Math.max(1,n))+' 分钟；主要延误原因为天气与飞机故障\n'
+   +'· 群消息 '+MON.msg+' 条，智能体共生成建议 '+MON.dmSent+' 条，均附依据条款\n'
+   +'· 私信推送 '+MON.dmSent+' 条，已确认并回推 '+MON.pushback+' 条，覆盖事件 '+iss+' 个；信息闭环率约 '+Math.round(100*iss/Math.max(1,MON.msg))+'%\n'
+   +'· 建议下次交班重点：'+(rate>=80?'运行平稳，关注天气趋势':'关注机械原因航班，提前确认机务放行状态')+'</div></div>';
+
+  $('otbody').innerHTML=h;
+  openView('ot');
+  log('打开正常性分析与可视化看板');
+}
+function trendSVG(){
+  var w=1180,h=200,pad=34;
+  var xs=[],ys=[];
+  for(var i=0;i<12;i++){xs.push(6+Math.round(Math.sin(i/1.7)*3)+i*2);ys.push(4+Math.round(Math.cos(i/1.3)*2)+i);}
+  var maxx=Math.max.apply(null,xs), maxy=Math.max.apply(null,ys);
+  function pts(arr,mx){
+    return arr.map(function(v,i){
+      var x=pad+i*((w-pad*2)/11), y=h-pad-(v/mx)*(h-pad*2); return x.toFixed(1)+','+y.toFixed(1);
+    }).join(' ');
+  }
+  var s='<svg viewBox="0 0 '+w+' '+h+'" width="100%" height="'+h+'" preserveAspectRatio="none" style="display:block">';
+  s+='<rect x="0" y="0" width="'+w+'" height="'+h+'" fill="#FCFCFD"/>';
+  for(var g=0;g<=4;g++){var y=pad+(h-pad*2)*g/4;s+='<line x1="'+pad+'" y1="'+y+'" x2="'+(w-pad)+'" y2="'+y+'" stroke="#EDEFF2"/>';}
+  s+='<polyline points="'+pts(xs,maxx)+'" fill="none" stroke="#7F094A" stroke-width="2.4" stroke-linejoin="round"/>';
+  s+='<polyline points="'+pts(ys,maxy)+'" fill="none" stroke="#A5805B" stroke-width="2.4" stroke-linejoin="round" stroke-dasharray="6 4"/>';
+  for(var i2=0;i2<12;i2++){
+    var x=pad+i2*((w-pad*2)/11), cx=(6+new Date().getHours()-11+i2+24)%24;
+    s+='<text x="'+x+'" y="'+(h-10)+'" font-size="11" fill="#9AA0A6" text-anchor="middle">'+String(cx<10?'0'+cx:cx)+':00</text>';
+  }
+  s+='<text x="'+pad+'" y="18" font-size="11.5" fill="#7F094A">■ 群消息量</text>';
+  s+='<text x="'+(pad+92)+'" y="18" font-size="11.5" fill="#A5805B">■ 决策回推量（虚线）</text>';
+  s+='</svg>';
+  return s;
+}
+
+/* ---------- 视图与外壳 ---------- */
+function openView(id){
+  ['mon','ot','rv'].forEach(function(k){$('v-'+k).classList.toggle('on',k===id);});
+}
+function closeView(){['mon','ot','rv'].forEach(function(k){$('v-'+k).classList.remove('on');});}
+function tab(name,el){
+  var ts=document.querySelectorAll('.tabs button');
+  for(var i=0;i<ts.length;i++)ts[i].classList.remove('on');
+  el.classList.add('on');
+  var ps=document.querySelectorAll('.tab');
+  for(var j=0;j<ps.length;j++)ps[j].classList.remove('on');
+  $('t-'+name).classList.add('on');
+}
+function toggleDrawer(){
+  var d=$('drawer'), a=$('app');
+  if(window.innerWidth<=1180){d.classList.toggle('show');}
+  else{d.classList.toggle('hide');a.classList.toggle('nd');}
+}
+function toggleNote(){$('note').classList.toggle('on');}
+function toggleChats(){$('chats').classList.toggle('show');}
+function quoteClause(){alert('依据条款来自示例知识库，正式知识库以各部门手册原文为准。');}
+
+function boot(){
+  HIST.g1.push({k:'sys',t:'HOC 已为 HO1234 自动建立航班保障群，相关保障人员与机组已入群；智能体已接入本群消息'});
+  HIST.g2.push({k:'sys',t:'HOC 已为 HO1188 自动建立航班保障群，相关保障人员与机组已入群；智能体已接入本群消息'});
+  HIST.g3.push({k:'sys',t:'HOC 已为 HO1901 建立重要保障群，重保任务保障人员已入群；智能体已接入本群消息'});
+  HIST.g4.push({k:'sys',t:'HOC 已为 HO1201 自动建立航班保障群，相关保障人员与机组已入群；智能体已接入本群消息'});
+  HIST.g5.push({k:'sys',t:'签派在信息平台勾选席位发布，公司相关部门已收到；本群用于不正常事件统一发布'});
+}
+
+window.addEventListener('DOMContentLoaded',function(){
+  var sel=$('negsel');
+  CASES.filter(function(c){return c.type==='负样本';}).forEach(function(c){
+    var o=document.createElement('option');o.value=c.id;o.textContent=c.id+' · '+c.scene;sel.appendChild(o);});
+  boot(); drawJudge(null); selectGroup('g1');
+  applyMe();
+  $('msg').addEventListener('keydown',function(e){
+    if(e.key==='Enter'&&!e.shiftKey&&!e.ctrlKey){e.preventDefault();send();}
+  });
+  window.addEventListener('resize',function(){
+    if(window.innerWidth>1180){$('drawer').classList.remove('show');}
+  });
+  setInterval(function(){
+    if($('monbody')&&$('v-mon').classList.contains('on'))monitor();
+  },1000);
+});
+</script></body></html>
